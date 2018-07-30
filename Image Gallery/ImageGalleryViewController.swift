@@ -93,18 +93,15 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 		session.localContext = collectionView
 		
 		//		Create one or more NSItemProvider objects. Use the item providers to represent the data for your collection view’s items.
-		if let url = imageTasks[indexPath.item].source, let aspectRatio = imageTasks[indexPath.item].aspectRatio {
+		let imageTask = imageTasks[indexPath.item]
+		if let url = imageTask.source {
 			let urlProvider = url as NSURL
-			let ratioProvider = String(describing: aspectRatio) as NSString
 			let urlItemProvider = NSItemProvider(object: urlProvider)
-			let ratioItemProvider = NSItemProvider(object: ratioProvider)
 			//		Wrap each item provider object in a UIDragItem object.
-			let dragURLItem = UIDragItem(itemProvider: urlItemProvider)
-			let dragRatioItem = UIDragItem(itemProvider: ratioItemProvider)
-			dragURLItem.localObject = url
-			dragRatioItem.localObject = aspectRatio
+			let dragItem = UIDragItem(itemProvider: urlItemProvider)
+			dragItem.localObject = imageTask
 			//		Return the drag items from your method.
-			return [dragURLItem, dragRatioItem]
+			return [dragItem]
 		} else {
 			return []
 		}
@@ -118,8 +115,15 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
     // MARK: Drop
     func collectionView(_ collectionView: UICollectionView, canHandle session: UIDropSession) -> Bool {
         print(#function)
-        // can handle URL and image
-        return session.canLoadObjects(ofClass: NSURL.self) && session.canLoadObjects(ofClass: UIImage.self)
+        // can handle URL and image if transferred from outside of the app, and only URL if from inside of the app
+		var canHandle: Bool
+		if session.localDragSession?.localContext as? UICollectionView == collectionView {
+			canHandle = session.canLoadObjects(ofClass: NSURL.self)
+		} else {
+			canHandle = session.canLoadObjects(ofClass: NSURL.self) && session.canLoadObjects(ofClass: UIImage.self)
+		}
+		print("can handle: \(canHandle)")
+        return canHandle
     }
     
     func collectionView(_ collectionView: UICollectionView, dropSessionDidUpdate session: UIDropSession, withDestinationIndexPath destinationIndexPath: IndexPath?) -> UICollectionViewDropProposal {
@@ -131,22 +135,19 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 	
 	func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
 		print(#function)
-		// all items are coming from outside of the app, so use itemprovider to load contents asynchronously
-		let localImageTask = ImageTask { (imageTask) in }
-		let localSourceIndexPath: IndexPath!
-		let localDestinationIndexPath = coordinator.destinationIndexPath ?? IndexPath(item: 0, section: 0)
 		
 		for item in coordinator.items {
 			
-			if let localObject = item.dragItem.localObject {
+			if let sourceIndexPath = item.sourceIndexPath, let destinationIndexPath = coordinator.destinationIndexPath, let imageTask = item.dragItem.localObject as? ImageTask { // local drop from within collectionview
+				imageGalleryCollectionView.performBatchUpdates({
+					self.imageTasks.remove(at: sourceIndexPath.item)
+					self.imageTasks.insert(imageTask, at: destinationIndexPath.item)
+					imageGalleryCollectionView.deleteItems(at: [sourceIndexPath])
+					imageGalleryCollectionView.insertItems(at: [destinationIndexPath])
+				})
+				coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
 				
-				if let url = localObject as? URL {
-					localImageTask.source = url.imageURL
-				}
-				if let aspectRatio = localObject as? CGFloat {
-					localImageTask.aspectRatio = aspectRatio
-				}
-			} else {
+			} else { // drop from outside of the app
 				if item.dragItem.itemProvider.canLoadObject(ofClass: NSURL.self) {
 					let destinationIndexPath = coordinator.destinationIndexPath ?? IndexPath(item: 0, section: 0)
 					// create placeholder
@@ -161,6 +162,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 						// receive imageURL data, and update data source while remove placeholder in main thread
 						DispatchQueue.main.async {
 							if let imageURL = provider as? URL {
+								print(imageURL.imageURL)
 								imageTask.source = imageURL
 								imageTask.process()
 							}
@@ -177,17 +179,6 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 					}
 				}
 			}
-//			imageGalleryCollectionView.performBatchUpdates({
-//				// datasource: remove then insert
-//				self.imageTasks.remove(at: localSourceIndexPath.item)
-//				self.imageTasks.insert(localImageTask, at: localDestinationIndexPath.item)
-//				// collectionView: remove then insert
-//				imageGalleryCollectionView.deleteItems(at: [localSourceIndexPath])
-//				imageGalleryCollectionView.insertItems(at: [localDestinationIndexPath])
-//
-//			})
-			
-			
 		}
 	}
 	// MARK: Gesture
