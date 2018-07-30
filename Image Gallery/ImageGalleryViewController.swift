@@ -11,10 +11,8 @@ import UIKit
 class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDropDelegate, UICollectionViewDragDelegate {
 	
 	
-    
-    
-    
-    
+	// MARK: - COLLECTION VIEW
+
     @IBOutlet weak var imageGalleryCollectionView: UICollectionView! {
         didSet {
             imageGalleryCollectionView.dropDelegate = self
@@ -23,31 +21,20 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 			imageGalleryCollectionView.addGestureRecognizer(pinch)
         }
     }
-    
-    
-    
-    
-    // MARK: - COLLECTION VIEW
 	
 	// MARK: Data
-	private var imageTasks: [ImageTask] = [] {
-		didSet {
-			print("image tasks count: \(imageTasks.count)")
-		}
-	}
+	private var imageTasks: [ImageTask] = []
 	
 	// MARK: View
-
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        print(#function)
         return imageTasks.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        print(#function)
+		
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageCell", for: indexPath)
-        if let imageCell = cell as? ImageCell {
-            imageCell.spinner.isHidden = false
+		if let imageCell = cell as? ImageCell {
+			imageCell.spinner.isHidden = false
 			let imageTask = imageTasks[indexPath.item]
 			imageTask.fetchImage { (image) in
 				if let image = image {
@@ -56,73 +43,72 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 					// If there's no image loaded, show image with frown face
 					imageCell.imageView.image = UIImage(named: "FrownFace")
 				}
+				// spinner hides automatically when it stops animating
 				imageCell.spinner.stopAnimating()
 			}
         }
         return cell
     }
-	private struct AspectRatio {
-		
-		static let widthToViewRatio: CGFloat = 0.2
-		
-		static func calcAspectRatio(size: CGSize) -> CGFloat {
-			let width = size.width
-			let height = size.height
-			let aspectRatio = height / width
-			return aspectRatio
-		}
-	}
-	// MARK: Layout
 	
-	var zoomFactor: CGFloat = 0.2 {
+	// MARK: Layout
+	func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+		let cellWidth = view.frame.width.zoomedBy(zoomFactor)
+		let aspectRatio = imageTasks[indexPath.item].aspectRatio ?? 1.0
+		let cellHeight = cellWidth / aspectRatio
+		return CGSize(width: cellWidth, height: cellHeight)
+	}
+	
+	private var zoomFactor: CGFloat = 0.2 {
 		didSet {
 			// collectionView to layout cells again when zoom factor changes (which changes cell width)
 			imageGalleryCollectionView.collectionViewLayout.invalidateLayout()
 		}
 	}
 	
-	func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-		let cellWidth = view.frame.width * zoomFactor
-		let cellHeight = (imageTasks[indexPath.item].aspectRatio ?? 1.0) * cellWidth
-		return CGSize(width: cellWidth, height: cellHeight)
+	private struct AspectRatio {
+		static let widthToViewRatio: CGFloat = 0.2
+		static func calcAspectRatio(size: CGSize) -> CGFloat {
+			let width = size.width
+			let height = size.height
+			let aspectRatio = width / height
+			return aspectRatio
+		}
 	}
 	
 	// MARK: Drag
 	func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
-		// provide local context to drag session, so that it'll be easy to distinguish in-app vs external drag
+		// Provide local context to drag session, so that it'll be easy to distinguish in-app vs external drag
 		session.localContext = collectionView
-		
-		//		Create one or more NSItemProvider objects. Use the item providers to represent the data for your collection view’s items.
+		return dragItems(at: indexPath)
+	}
+	
+	func collectionView(_ collectionView: UICollectionView, itemsForAddingTo session: UIDragSession, at indexPath: IndexPath, point: CGPoint) -> [UIDragItem] {
+		return dragItems(at: indexPath)
+	}
+	
+	private func dragItems(at indexPath: IndexPath) -> [UIDragItem] {
 		let imageTask = imageTasks[indexPath.item]
-		if let url = imageTask.source {
+		// The drag item is created from URL only, but it carries the whole imageTask in localObject which will allow rearranging items within the drag and drop view
+		if let url = imageTask.url {
 			let urlProvider = url as NSURL
 			let urlItemProvider = NSItemProvider(object: urlProvider)
-			//		Wrap each item provider object in a UIDragItem object.
 			let dragItem = UIDragItem(itemProvider: urlItemProvider)
 			dragItem.localObject = imageTask
-			//		Return the drag items from your method.
 			return [dragItem]
 		} else {
 			return []
 		}
-		
 	}
-	
-//	func collectionView(_ collectionView: UICollectionView, itemsForAddingTo session: UIDragSession, at indexPath: IndexPath, point: CGPoint) -> [UIDragItem] {
-//		<#code#>
-//	}
 	
     // MARK: Drop
     func collectionView(_ collectionView: UICollectionView, canHandle session: UIDropSession) -> Bool {
-        print(#function)
-        // can handle URL and image if transferred from outside of the app, and only URL if from inside of the app
+        // The drop accepts NSURL only if it's within collection view (saved by local context).  External data from outside of the app must have both URL and image to be accepted.
 		var canHandle: Bool
-		if session.localDragSession?.localContext as? UICollectionView == collectionView {
+		if (session.localDragSession?.localContext as? UICollectionView) == collectionView {
 			canHandle = session.canLoadObjects(ofClass: NSURL.self)
 		} else {
 			canHandle = session.canLoadObjects(ofClass: NSURL.self) && session.canLoadObjects(ofClass: UIImage.self)
 		}
-		print("can handle: \(canHandle)")
         return canHandle
     }
     
@@ -137,8 +123,9 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 		print(#function)
 		
 		for item in coordinator.items {
-			
-			if let sourceIndexPath = item.sourceIndexPath, let destinationIndexPath = coordinator.destinationIndexPath, let imageTask = item.dragItem.localObject as? ImageTask { // local drop from within collectionview
+			if item.isLocal {
+				
+				guard let sourceIndexPath = item.sourceIndexPath, let destinationIndexPath = coordinator.destinationIndexPath, let imageTask = item.dragItem.localObject as? ImageTask else { return }
 				imageGalleryCollectionView.performBatchUpdates({
 					self.imageTasks.remove(at: sourceIndexPath.item)
 					self.imageTasks.insert(imageTask, at: destinationIndexPath.item)
@@ -147,40 +134,45 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 				})
 				coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
 				
-			} else { // drop from outside of the app
-				if item.dragItem.itemProvider.canLoadObject(ofClass: NSURL.self) {
-					let destinationIndexPath = coordinator.destinationIndexPath ?? IndexPath(item: 0, section: 0)
-					// create placeholder
-					let placeholderContext = coordinator.drop(item.dragItem, to: UICollectionViewDropPlaceholder(insertionIndexPath: destinationIndexPath, reuseIdentifier: "DropPlaceholderCell"))
-					let imageTask = ImageTask { imageTask in
-						placeholderContext.commitInsertion(dataSourceUpdates: { indexPath in
-							self.imageTasks.insert(imageTask, at: indexPath.item)
-						})
-					}
-					// load URL and image asynchronously, then process handler
-					item.dragItem.itemProvider.loadObject(ofClass: NSURL.self) { (provider, error) in // asynchronously loading, need to perform UI update in main thread
-						// receive imageURL data, and update data source while remove placeholder in main thread
-						DispatchQueue.main.async {
-							if let imageURL = provider as? URL {
-								print(imageURL.imageURL)
-								imageTask.source = imageURL
-								imageTask.process()
-							}
-						}
-					}
-					item.dragItem.itemProvider.loadObject(ofClass: UIImage.self) { (provider, error) in
-						DispatchQueue.main.async {
-							if let image = provider as? UIImage {
-								let aspectRatio = AspectRatio.calcAspectRatio(size: image.size)
-								imageTask.aspectRatio = aspectRatio
-								imageTask.process()
-							}
+			} else {
+				
+				guard item.dragItem.itemProvider.canLoadObject(ofClass: NSURL.self) && item.dragItem.itemProvider.canLoadObject(ofClass: UIImage.self) else { return }
+				let destinationIndexPath = coordinator.destinationIndexPath ?? IndexPath(item: 0, section: 0)
+				
+				// Use placeholder cell while waiting for image and url to load.  The image task handler will replace placeholder cell with final content when both image and url are loaded.
+				let placeHolder = UICollectionViewDropPlaceholder(insertionIndexPath: destinationIndexPath, reuseIdentifier: "DropPlaceholderCell")
+				let placeholderContext = coordinator.drop(item.dragItem, to: placeHolder)
+				let imageTask = ImageTask { imageTask in
+					// weak reference to view controller because user may switch to a different document before image is loaded
+					placeholderContext.commitInsertion(dataSourceUpdates: { [weak self] indexPath in
+						self?.imageTasks.insert(imageTask, at: indexPath.item)
+					})
+				}
+				
+				// load URL and image asynchronously, then process handler
+				item.dragItem.itemProvider.loadObject(ofClass: NSURL.self) { (provider, error) in
+					// receive imageURL data, and update data source while remove placeholder in main thread
+					DispatchQueue.main.async {
+						if let imageURL = provider as? URL {
+							imageTask.url = imageURL
+							imageTask.process()
 						}
 					}
 				}
+				item.dragItem.itemProvider.loadObject(ofClass: UIImage.self) { (provider, error) in
+					DispatchQueue.main.async {
+						if let image = provider as? UIImage {
+							let aspectRatio = AspectRatio.calcAspectRatio(size: image.size)
+							imageTask.aspectRatio = aspectRatio
+							imageTask.process()
+						}
+					}
+				}
+				
 			}
 		}
 	}
+	
 	// MARK: Gesture
 	@objc func zoom(_ pinchGestureRecognizer: UIPinchGestureRecognizer) {
 		switch pinchGestureRecognizer.state {

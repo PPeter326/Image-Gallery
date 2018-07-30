@@ -62,16 +62,7 @@
                                         <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO">
                                             <rect key="frame" x="0.0" y="0.0" width="50" height="50"/>
                                             <autoresizingMask key="autoresizingMask"/>
-                                            <subviews>
-                                                <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" animating="YES" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="5AO-rm-VZk">
-                                                    <rect key="frame" x="15" y="15" width="20" height="20"/>
-                                                </activityIndicatorView>
-                                            </subviews>
                                         </view>
-                                        <constraints>
-                                            <constraint firstItem="5AO-rm-VZk" firstAttribute="centerX" secondItem="Cvq-zV-fVd" secondAttribute="centerX" id="7Zf-go-loR"/>
-                                            <constraint firstItem="5AO-rm-VZk" firstAttribute="centerY" secondItem="Cvq-zV-fVd" secondAttribute="centerY" id="vjn-Sl-y3O"/>
-                                        </constraints>
                                     </collectionViewCell>
                                 </cells>
                                 <connections>

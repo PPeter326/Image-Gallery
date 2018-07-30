@@ -11,7 +11,7 @@ import UIKit
 
 class ImageTask {
 	
-	var source: URL?
+	var url: URL?
 	var aspectRatio: CGFloat?
 	
 	private var handler: (ImageTask) -> Void
@@ -21,13 +21,13 @@ class ImageTask {
 	}
 	
 	func process() {
-		if source != nil && aspectRatio != nil {
+		if url != nil && aspectRatio != nil {
 			handler(self)
 		}
 	}
 	
 	func fetchImage(completion: @escaping (UIImage?) -> Void) {
-		guard let url = self.source?.imageURL else { return }
+		guard let url = self.url?.imageURL else { return }
 		DispatchQueue.global(qos: .userInitiated).async {
 			let data = try? Data(contentsOf: url)
 			if let imageData = data {

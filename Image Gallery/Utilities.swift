@@ -236,3 +236,17 @@ extension UIDocumentState: CustomStringConvertible {
             ][rawValue] ?? String(rawValue)
     }
 }
+
+extension CGFloat {
+	func zoomedBy(_ zoomFactor: CGFloat) -> CGFloat {
+		return self * zoomFactor
+	}
+}
+
+extension UICollectionViewDropItem {
+	
+	var isLocal: Bool {
+		return sourceIndexPath != nil
+	}
+	
+}
