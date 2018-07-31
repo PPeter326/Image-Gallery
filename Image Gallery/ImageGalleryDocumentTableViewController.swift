@@ -22,6 +22,11 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 	}
 
     // MARK: - Table view data source
+	
+	private struct GallerySection {
+		static let created: Int = 0
+		static let recentlyDeleted: Int = 1
+	}
 
     override func numberOfSections(in tableView: UITableView) -> Int {
 		return recentlyDeletedImageGalleries.isEmpty ? 1 : 2
@@ -29,23 +34,23 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
 		switch section {
-		case 0: return imageGalleries.count
-		case 1: return recentlyDeletedImageGalleries.count
+		case GallerySection.created: return imageGalleries.count
+		case GallerySection.recentlyDeleted: return recentlyDeletedImageGalleries.count
 		default: return 0
 		}
     }
 	
 	override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-		return section == 1 ? "Recently Deleted" : nil
+		return section == GallerySection.recentlyDeleted ? "Recently Deleted" : nil
 	}
 
 	
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
 		let cell = tableView.dequeueReusableCell(withIdentifier: "DocumentCell", for: indexPath)
 		switch indexPath.section {
-		case 0:
+		case GallerySection.created:
 			cell.textLabel?.text = imageGalleries[indexPath.row].galleryName
-		case 1:
+		case GallerySection.recentlyDeleted:
 			cell.textLabel?.text = recentlyDeletedImageGalleries[indexPath.row].galleryName
 		default: break
 		}
@@ -69,11 +74,14 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
     }
     */
 
-    // Override to support editing the table view.
+    /*
+	If user swipe to delete an image gallery in the "created" (there's no title) section, the gallery object will be moved to the recently deleted section
+	If user swipe to delete an image gallery from the recently deleted section, the gallery object will be permanently removed
+	*/
 	override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
 		if editingStyle == .delete {
-			if indexPath.section == 0 { // removing image gallery to recently deleted section
-				// Delete the row from the data source
+			switch indexPath.section {
+			case GallerySection.created:
 				tableView.performBatchUpdates({
 					let gallery = imageGalleries.remove(at: indexPath.row)
 					tableView.deleteRows(at: [indexPath], with: .fade)
@@ -83,7 +91,7 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 					}
 					tableView.insertRows(at: [IndexPath(row: recentlyDeletedImageGalleries.index(of: gallery)!, section: 1)], with: .automatic)
 				})
-			} else { // permanently deleting image gallery from recently deleted section
+			case GallerySection.recentlyDeleted:
 				tableView.performBatchUpdates({
 					recentlyDeletedImageGalleries.remove(at: indexPath.row)
 					tableView.deleteRows(at: [indexPath], with: .fade)
@@ -91,6 +99,7 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 						tableView.deleteSections(IndexSet([1]), with: .automatic)
 					}
 				})
+			default: break
 			}
 		}
 	}
