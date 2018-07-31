@@ -70,20 +70,30 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
     */
 
     // Override to support editing the table view.
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            // Delete the row from the data source
-			tableView.performBatchUpdates({
-				let gallery = imageGalleries.remove(at: indexPath.row)
-				tableView.deleteRows(at: [indexPath], with: .fade)
-				recentlyDeletedImageGalleries.append(gallery)
-				if tableView.numberOfSections < 2 {
-					tableView.insertSections(IndexSet([1]), with: .automatic)
-				}
-				tableView.insertRows(at: [IndexPath(row: recentlyDeletedImageGalleries.index(of: gallery)!, section: 1)], with: .automatic)
-			})
-        }
-    }
+	override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+		if editingStyle == .delete {
+			if indexPath.section == 0 { // removing image gallery to recently deleted section
+				// Delete the row from the data source
+				tableView.performBatchUpdates({
+					let gallery = imageGalleries.remove(at: indexPath.row)
+					tableView.deleteRows(at: [indexPath], with: .fade)
+					recentlyDeletedImageGalleries.append(gallery)
+					if tableView.numberOfSections < 2 {
+						tableView.insertSections(IndexSet([1]), with: .automatic)
+					}
+					tableView.insertRows(at: [IndexPath(row: recentlyDeletedImageGalleries.index(of: gallery)!, section: 1)], with: .automatic)
+				})
+			} else { // permanently deleting image gallery from recently deleted section
+				tableView.performBatchUpdates({
+					recentlyDeletedImageGalleries.remove(at: indexPath.row)
+					tableView.deleteRows(at: [indexPath], with: .fade)
+					if recentlyDeletedImageGalleries.isEmpty {
+						tableView.deleteSections(IndexSet([1]), with: .automatic)
+					}
+				})
+			}
+		}
+	}
 	
 
     /*
