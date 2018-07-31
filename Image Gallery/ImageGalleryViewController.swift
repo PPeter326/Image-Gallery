@@ -10,7 +10,6 @@ import UIKit
 
 class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDropDelegate, UICollectionViewDragDelegate {
 	
-	
 	// MARK: - COLLECTION VIEW
 
     @IBOutlet weak var imageGalleryCollectionView: UICollectionView! {
@@ -23,11 +22,12 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
     }
 	
 	// MARK: Data
-	private var imageTasks: [ImageTask] = []
+	var imageGallery = ImageGallery()
+	
 	
 	// MARK: View
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return imageTasks.count
+        return imageGallery.imageTasks.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -35,7 +35,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageCell", for: indexPath)
 		if let imageCell = cell as? ImageCell {
 			imageCell.spinner.isHidden = false
-			let imageTask = imageTasks[indexPath.item]
+			let imageTask = imageGallery.imageTasks[indexPath.item]
 			imageTask.fetchImage { (image) in
 				if let image = image {
 					imageCell.imageView.image = image
@@ -53,7 +53,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 	// MARK: Layout
 	func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
 		let cellWidth = view.frame.width.zoomedBy(zoomFactor)
-		let aspectRatio = imageTasks[indexPath.item].aspectRatio ?? 1.0
+		let aspectRatio = imageGallery.imageTasks[indexPath.item].aspectRatio ?? 1.0
 		let cellHeight = cellWidth / aspectRatio
 		return CGSize(width: cellWidth, height: cellHeight)
 	}
@@ -87,7 +87,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 	}
 	
 	private func dragItems(at indexPath: IndexPath) -> [UIDragItem] {
-		let imageTask = imageTasks[indexPath.item]
+		let imageTask = imageGallery.imageTasks[indexPath.item]
 		// The drag item is created from URL only, but it carries the whole imageTask in localObject which will allow rearranging items within the drag and drop view
 		if let url = imageTask.url {
 			let urlProvider = url as NSURL
@@ -127,8 +127,8 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 				
 				guard let sourceIndexPath = item.sourceIndexPath, let destinationIndexPath = coordinator.destinationIndexPath, let imageTask = item.dragItem.localObject as? ImageTask else { return }
 				imageGalleryCollectionView.performBatchUpdates({
-					self.imageTasks.remove(at: sourceIndexPath.item)
-					self.imageTasks.insert(imageTask, at: destinationIndexPath.item)
+					self.imageGallery.imageTasks.remove(at: sourceIndexPath.item)
+					self.imageGallery.imageTasks.insert(imageTask, at: destinationIndexPath.item)
 					imageGalleryCollectionView.deleteItems(at: [sourceIndexPath])
 					imageGalleryCollectionView.insertItems(at: [destinationIndexPath])
 				})
@@ -145,7 +145,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 				let imageTask = ImageTask { imageTask in
 					// weak reference to view controller because user may switch to a different document before image is loaded
 					placeholderContext.commitInsertion(dataSourceUpdates: { [weak self] indexPath in
-						self?.imageTasks.insert(imageTask, at: indexPath.item)
+						self?.imageGallery.imageTasks.insert(imageTask, at: indexPath.item)
 					})
 				}
 				
