@@ -12,30 +12,43 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 
 	// MARK: data
 	var imageGalleries: [ImageGallery] = []
-//	override func viewWillLayoutSubviews() {
-//		super.viewWillLayoutSubviews()
-//		if splitViewController?.preferredDisplayMode != .primaryOverlay {
-//			splitViewController?.preferredDisplayMode = .primaryOverlay
-//		}
-//	}
+	var recentlyDeletedImageGalleries: [ImageGallery] = []
+	
+	override func viewWillLayoutSubviews() {
+		super.viewWillLayoutSubviews()
+		if splitViewController?.preferredDisplayMode != .primaryOverlay {
+			splitViewController?.preferredDisplayMode = .primaryOverlay
+		}
+	}
 
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
-        return 1
+		return recentlyDeletedImageGalleries.isEmpty ? 1 : 2
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return imageGalleries.count
+		switch section {
+		case 0: return imageGalleries.count
+		case 1: return recentlyDeletedImageGalleries.count
+		default: return 0
+		}
     }
+	
+	override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+		return section == 1 ? "Recently Deleted" : nil
+	}
 
 	
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "DocumentCell", for: indexPath)
-
-        // Configure the cell...
-		cell.textLabel?.text = imageGalleries[indexPath.row].galleryName
-
+		let cell = tableView.dequeueReusableCell(withIdentifier: "DocumentCell", for: indexPath)
+		switch indexPath.section {
+		case 0:
+			cell.textLabel?.text = imageGalleries[indexPath.row].galleryName
+		case 1:
+			cell.textLabel?.text = recentlyDeletedImageGalleries[indexPath.row].galleryName
+		default: break
+		}
         return cell
     }
 	
@@ -56,17 +69,22 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
     }
     */
 
-    /*
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
             // Delete the row from the data source
-            tableView.deleteRows(at: [indexPath], with: .fade)
-        } else if editingStyle == .insert {
-            // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-        }    
+			tableView.performBatchUpdates({
+				let gallery = imageGalleries.remove(at: indexPath.row)
+				tableView.deleteRows(at: [indexPath], with: .fade)
+				recentlyDeletedImageGalleries.append(gallery)
+				if tableView.numberOfSections < 2 {
+					tableView.insertSections(IndexSet([1]), with: .automatic)
+				}
+				tableView.insertRows(at: [IndexPath(row: recentlyDeletedImageGalleries.index(of: gallery)!, section: 1)], with: .automatic)
+			})
+        }
     }
-    */
+	
 
     /*
     // Override to support rearranging the table view.
