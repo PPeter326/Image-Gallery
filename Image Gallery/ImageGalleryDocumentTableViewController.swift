@@ -80,56 +80,70 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 	*/
 	override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
 		if editingStyle == .delete {
+			var imageGalleryUpdate: ((IndexPath) -> Void)?
 			switch indexPath.section {
 			case GallerySection.created:
-				tableView.performBatchUpdates({
-					let gallery = imageGalleries.remove(at: indexPath.row)
-					tableView.deleteRows(at: [indexPath], with: .fade)
-					recentlyDeletedImageGalleries.append(gallery)
-					recentlyDeletedImageGalleries.sort() { $1.hashValue > $0.hashValue }
-					if tableView.numberOfSections < 2 {
-						tableView.insertSections(IndexSet([1]), with: .automatic)
-					}
-					tableView.insertRows(at: [IndexPath(row: recentlyDeletedImageGalleries.index(of: gallery)!, section: GallerySection.recentlyDeleted)], with: .automatic)
-				})
+				imageGalleryUpdate = deleteImageGallery
 			case GallerySection.recentlyDeleted:
-				tableView.performBatchUpdates({
-					recentlyDeletedImageGalleries.remove(at: indexPath.row)
-					tableView.deleteRows(at: [indexPath], with: .fade)
-					if recentlyDeletedImageGalleries.isEmpty {
-						tableView.deleteSections(IndexSet([1]), with: .automatic)
-					}
-				})
+				imageGalleryUpdate = permanentDeleteImageGallery
 			default: break
 			}
+			tableView.performBatchUpdates({
+				imageGalleryUpdate?(indexPath)
+			})
 		}
 	}
 	
 	override func tableView(_ tableView: UITableView, leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
 		if indexPath.section == GallerySection.recentlyDeleted {
-			
-			
-			let action = UIContextualAction(style: .normal, title: "Undelete") { (action, view, completionHandler) in
-				tableView.performBatchUpdates({
-					// update model and tableview
-					let gallery = self.recentlyDeletedImageGalleries.remove(at: indexPath.row)
-					self.imageGalleries.append(gallery)
-					self.imageGalleries.sort(){ $0.hashValue < $1.hashValue }
-					tableView.deleteRows(at: [indexPath], with: .fade)
-					if self.recentlyDeletedImageGalleries.isEmpty { tableView.deleteSections(IndexSet([1]), with: .fade)}
-					if tableView.numberOfSections < 2 {
-						tableView.insertSections(IndexSet([1]), with: .automatic)
-					}
-					tableView.insertRows(at: [IndexPath(row: self.imageGalleries.index(of: gallery)!, section: GallerySection.created)], with: .automatic)
-					completionHandler(true)
-				})
-			}
-			let swipeActionConfiguration = UISwipeActionsConfiguration(actions: [action])
-			swipeActionConfiguration.performsFirstActionWithFullSwipe = true
-			return swipeActionConfiguration
+			let undeleteSwipeActionConfiguration = UISwipeActionsConfiguration(actions: [makeUndeleteCellAction(at: indexPath)])
+			undeleteSwipeActionConfiguration.performsFirstActionWithFullSwipe = true
+			return undeleteSwipeActionConfiguration
 		} else {
 			return nil
 		}
+	}
+	
+	private func makeUndeleteCellAction(at indexPath: IndexPath) -> UIContextualAction {
+		let action = UIContextualAction(style: .normal, title: "Undelete") { (action, view, completed) in
+			self.tableView.performBatchUpdates({ [unowned self] in
+				self.undeleteImageGallery(at: indexPath)
+			})
+			completed(true)
+		}
+		action.backgroundColor = UIColor.blue
+		return action
+	}
+	
+	private func deleteImageGallery(at indexPath: IndexPath) {
+		let gallery = imageGalleries.remove(at: indexPath.row)
+		recentlyDeletedImageGalleries.append(gallery)
+		recentlyDeletedImageGalleries.sort() { $1.hashValue > $0.hashValue }
+		tableView.deleteRows(at: [indexPath], with: .fade)
+		if tableView.numberOfSections < 2 {
+			tableView.insertSections(IndexSet([1]), with: .automatic)
+		}
+		tableView.insertRows(at: [IndexPath(row: recentlyDeletedImageGalleries.index(of: gallery)!, section: GallerySection.recentlyDeleted)], with: .automatic)
+	}
+	
+	private func permanentDeleteImageGallery(at indexPath: IndexPath) {
+		recentlyDeletedImageGalleries.remove(at: indexPath.row)
+		tableView.deleteRows(at: [indexPath], with: .fade)
+		if recentlyDeletedImageGalleries.isEmpty {
+			tableView.deleteSections(IndexSet([1]), with: .automatic)
+		}
+	}
+	private func undeleteImageGallery(at indexPath: IndexPath) {
+		// update model and tableview
+		let gallery = self.recentlyDeletedImageGalleries.remove(at: indexPath.row)
+		self.imageGalleries.append(gallery)
+		self.imageGalleries.sort(){ $0.hashValue < $1.hashValue }
+		tableView.deleteRows(at: [indexPath], with: .fade)
+		if self.recentlyDeletedImageGalleries.isEmpty { tableView.deleteSections(IndexSet([1]), with: .fade)}
+		if tableView.numberOfSections < 2 {
+			tableView.insertSections(IndexSet([1]), with: .automatic)
+		}
+		tableView.insertRows(at: [IndexPath(row: self.imageGalleries.index(of: gallery)!, section: GallerySection.created)], with: .automatic)
 	}
 
     /*
