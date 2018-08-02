@@ -156,7 +156,7 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 		guard sender is UITableViewCell else { return }
 		guard segue.identifier == "ChooseGallery" else { return }
 
-		if let indexPath = tableView.indexPathForSelectedRow {
+		if let indexPath = tableView.indexPathForSelectedRow, indexPath.section == GallerySection.created {
 			if let imageGalleryVC = segue.destination as? ImageGalleryViewController {
 				imageGalleryVC.imageGallery = imageGalleries[indexPath.row]
 			}
