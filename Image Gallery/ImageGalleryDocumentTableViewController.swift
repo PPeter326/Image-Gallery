@@ -11,8 +11,8 @@ import UIKit
 class ImageGalleryDocumentTableViewController: UITableViewController {
 
 	// MARK: data
-	var imageGalleries: [ImageGallery] = []
-	var recentlyDeletedImageGalleries: [ImageGallery] = []
+	private var imageGalleries: [ImageGallery] = []
+	private var recentlyDeletedImageGalleries: [ImageGallery] = []
 	
 	override func viewWillLayoutSubviews() {
 		super.viewWillLayoutSubviews()
@@ -86,10 +86,11 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 					let gallery = imageGalleries.remove(at: indexPath.row)
 					tableView.deleteRows(at: [indexPath], with: .fade)
 					recentlyDeletedImageGalleries.append(gallery)
+					recentlyDeletedImageGalleries.sort() { $1.hashValue > $0.hashValue }
 					if tableView.numberOfSections < 2 {
 						tableView.insertSections(IndexSet([1]), with: .automatic)
 					}
-					tableView.insertRows(at: [IndexPath(row: recentlyDeletedImageGalleries.index(of: gallery)!, section: 1)], with: .automatic)
+					tableView.insertRows(at: [IndexPath(row: recentlyDeletedImageGalleries.index(of: gallery)!, section: GallerySection.recentlyDeleted)], with: .automatic)
 				})
 			case GallerySection.recentlyDeleted:
 				tableView.performBatchUpdates({
@@ -104,6 +105,32 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 		}
 	}
 	
+	override func tableView(_ tableView: UITableView, leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+		if indexPath.section == GallerySection.recentlyDeleted {
+			
+			
+			let action = UIContextualAction(style: .normal, title: "Undelete") { (action, view, completionHandler) in
+				tableView.performBatchUpdates({
+					// update model and tableview
+					let gallery = self.recentlyDeletedImageGalleries.remove(at: indexPath.row)
+					self.imageGalleries.append(gallery)
+					self.imageGalleries.sort(){ $0.hashValue < $1.hashValue }
+					tableView.deleteRows(at: [indexPath], with: .fade)
+					if self.recentlyDeletedImageGalleries.isEmpty { tableView.deleteSections(IndexSet([1]), with: .fade)}
+					if tableView.numberOfSections < 2 {
+						tableView.insertSections(IndexSet([1]), with: .automatic)
+					}
+					tableView.insertRows(at: [IndexPath(row: self.imageGalleries.index(of: gallery)!, section: GallerySection.created)], with: .automatic)
+					completionHandler(true)
+				})
+			}
+			let swipeActionConfiguration = UISwipeActionsConfiguration(actions: [action])
+			swipeActionConfiguration.performsFirstActionWithFullSwipe = true
+			return swipeActionConfiguration
+		} else {
+			return nil
+		}
+	}
 
     /*
     // Override to support rearranging the table view.
