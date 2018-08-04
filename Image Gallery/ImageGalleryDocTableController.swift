@@ -8,8 +8,9 @@
 
 import UIKit
 
-class ImageGalleryDocumentTableViewController: UITableViewController {
+class ImageGalleryDocTableController: UITableViewController {
 
+	
 	// MARK: data
 	private var imageGalleries: [ImageGallery] = []
 	private var recentlyDeletedImageGalleries: [ImageGallery] = []
@@ -43,16 +44,31 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 	override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
 		return section == GallerySection.recentlyDeleted ? "Recently Deleted" : nil
 	}
-
 	
+//	private var font = UIFontMetrics(forTextStyle: .body).scaledFont(for: UIFont.preferredFont(forTextStyle: .body)).withSize(30.0)
+
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
 		let cell = tableView.dequeueReusableCell(withIdentifier: "DocumentCell", for: indexPath)
-		switch indexPath.section {
-		case GallerySection.created:
-			cell.textLabel?.text = imageGalleries[indexPath.row].galleryName
-		case GallerySection.recentlyDeleted:
-			cell.textLabel?.text = recentlyDeletedImageGalleries[indexPath.row].galleryName
-		default: break
+		if let imageGalleryTableViewCell = cell as? ImageGalleryTableViewCell {
+			switch indexPath.section {
+			case GallerySection.created:
+				imageGalleryTableViewCell.galleryNameTextField.text = imageGalleries[indexPath.row].galleryName
+				imageGalleryTableViewCell.resignHandler = { [weak self, unowned imageGalleryTableViewCell] in
+					if let updatedName = imageGalleryTableViewCell.galleryNameTextField.text {
+						self?.imageGalleries[indexPath.row].galleryName = updatedName
+//						tableView?.reloadData()
+					}
+				}
+			case GallerySection.recentlyDeleted:
+				imageGalleryTableViewCell.galleryNameTextField.text = recentlyDeletedImageGalleries[indexPath.row].galleryName
+				imageGalleryTableViewCell.resignHandler = { [weak self, unowned imageGalleryTableViewCell] in
+					if let updatedName = imageGalleryTableViewCell.galleryNameTextField.text {
+						self?.recentlyDeletedImageGalleries[indexPath.row].galleryName = updatedName
+					}
+//					tableView?.reloadData()
+				}
+			default: break
+			}
 		}
         return cell
     }
@@ -97,7 +113,7 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 	override func tableView(_ tableView: UITableView, leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
 		if indexPath.section == GallerySection.recentlyDeleted {
 			let undeleteSwipeActionConfiguration = UISwipeActionsConfiguration(actions: [makeUndeleteCellAction(at: indexPath)])
-			undeleteSwipeActionConfiguration.performsFirstActionWithFullSwipe = true
+//			undeleteSwipeActionConfiguration.performsFirstActionWithFullSwipe = true
 			return undeleteSwipeActionConfiguration
 		} else {
 			return nil
@@ -121,16 +137,16 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 		recentlyDeletedImageGalleries.sort() { $1.hashValue > $0.hashValue }
 		tableView.deleteRows(at: [indexPath], with: .fade)
 		if tableView.numberOfSections < 2 {
-			tableView.insertSections(IndexSet([1]), with: .automatic)
+			tableView.insertSections(IndexSet(integer: 1), with: .automatic)
 		}
-		tableView.insertRows(at: [IndexPath(row: recentlyDeletedImageGalleries.index(of: gallery)!, section: GallerySection.recentlyDeleted)], with: .automatic)
+		tableView.insertRows(at: [IndexPath(row: recentlyDeletedImageGalleries.index(of: gallery)!, section: GallerySection.recentlyDeleted)], with: UITableViewRowAnimation.automatic)
 	}
 	
 	private func permanentDeleteImageGallery(at indexPath: IndexPath) {
 		recentlyDeletedImageGalleries.remove(at: indexPath.row)
 		tableView.deleteRows(at: [indexPath], with: .fade)
 		if recentlyDeletedImageGalleries.isEmpty {
-			tableView.deleteSections(IndexSet([1]), with: .automatic)
+			tableView.deleteSections(IndexSet(integer: 1), with: .automatic)
 		}
 	}
 	private func undeleteImageGallery(at indexPath: IndexPath) {
@@ -139,9 +155,9 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 		self.imageGalleries.append(gallery)
 		self.imageGalleries.sort(){ $0.hashValue < $1.hashValue }
 		tableView.deleteRows(at: [indexPath], with: .fade)
-		if self.recentlyDeletedImageGalleries.isEmpty { tableView.deleteSections(IndexSet([1]), with: .fade)}
+		if self.recentlyDeletedImageGalleries.isEmpty { tableView.deleteSections(IndexSet(integer: 1), with: .fade)}
 		if tableView.numberOfSections < 2 {
-			tableView.insertSections(IndexSet([1]), with: .automatic)
+			tableView.insertSections(IndexSet(integer: 1), with: .automatic)
 		}
 		tableView.insertRows(at: [IndexPath(row: self.imageGalleries.index(of: gallery)!, section: GallerySection.created)], with: .automatic)
 	}
@@ -169,9 +185,9 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 		
 		guard sender is UITableViewCell else { return }
 		guard segue.identifier == "ChooseGallery" else { return }
-
-		if let indexPath = tableView.indexPathForSelectedRow, indexPath.section == GallerySection.created {
-			if let imageGalleryVC = segue.destination as? ImageGalleryViewController {
+		
+		if let imageGalleryVC = segue.destination.contentVC as? ImageGalleryViewController {
+			if let indexPath = tableView.indexPathForSelectedRow, indexPath.section == GallerySection.created {
 				imageGalleryVC.imageGallery = imageGalleries[indexPath.row]
 			}
 		}
@@ -179,3 +195,15 @@ class ImageGalleryDocumentTableViewController: UITableViewController {
 	
 
 }
+
+extension UIViewController {
+	var contentVC: UIViewController{
+		if let navCon = self as? UINavigationController, let visibleVC = navCon.visibleViewController {
+			return visibleVC
+		} else {
+			return self
+		}
+	}
+}
+
+

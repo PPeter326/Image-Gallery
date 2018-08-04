@@ -33,7 +33,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
 		
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageCell", for: indexPath)
-		if let imageCell = cell as? ImageCell {
+		if let imageCell = cell as? ImageCollectionViewCell {
 			imageCell.spinner.isHidden = false
 			let imageTask = imageGallery.imageTasks[indexPath.item]
 			imageTask.fetchImage { (image) in
@@ -120,8 +120,6 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
     
 	
 	func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
-		print(#function)
-		
 		for item in coordinator.items {
 			if item.isLocal {
 				
@@ -184,14 +182,18 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 		
 	}
     
-    /*
     // MARK: - Navigation
 
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
-    }
-    */
+	override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+		if segue.identifier == "ShowImage" {
+			if let imageVC = segue.destination as? ImageViewController {
+				if let imageCell = sender as? ImageCollectionViewCell, let indexPath = imageGalleryCollectionView.indexPath(for: imageCell) {
+					let imageTask = imageGallery.imageTasks[indexPath.item]
+					let imageURL = imageTask.url
+					imageVC.url = imageURL
+				}
+			}
+		}
+	}
 
 }
