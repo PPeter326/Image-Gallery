@@ -165,7 +165,11 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="lsc-uX-Xvc">
-                                <rect key="frame" x="0.0" y="64" width="1366" height="960"/>
+                                <rect key="frame" x="0.0" y="96.5" width="1366" height="895"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" priority="250" constant="895" id="92x-8b-a8g"/>
+                                    <constraint firstAttribute="width" priority="250" constant="1366" id="f0w-VM-BLo"/>
+                                </constraints>
                             </scrollView>
                             <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" animating="YES" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="CEd-Ev-Wgj">
                                 <rect key="frame" x="674" y="502" width="20" height="20"/>
@@ -174,17 +178,21 @@
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
-                            <constraint firstItem="mXw-M5-LyV" firstAttribute="trailing" secondItem="lsc-uX-Xvc" secondAttribute="trailing" id="S63-fE-tuc"/>
-                            <constraint firstItem="mXw-M5-LyV" firstAttribute="bottom" secondItem="lsc-uX-Xvc" secondAttribute="bottom" id="XaZ-dF-aG5"/>
+                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="lsc-uX-Xvc" secondAttribute="trailing" id="IIN-wC-vpa"/>
+                            <constraint firstItem="mXw-M5-LyV" firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="lsc-uX-Xvc" secondAttribute="bottom" id="Q0e-5v-Ifc"/>
+                            <constraint firstItem="lsc-uX-Xvc" firstAttribute="centerY" secondItem="mXw-M5-LyV" secondAttribute="centerY" id="Yyh-uJ-O74"/>
                             <constraint firstItem="CEd-Ev-Wgj" firstAttribute="centerX" secondItem="itI-sa-Abf" secondAttribute="centerX" id="Zai-UL-9RG"/>
-                            <constraint firstItem="lsc-uX-Xvc" firstAttribute="leading" secondItem="mXw-M5-LyV" secondAttribute="leading" id="eyX-X0-LJx"/>
-                            <constraint firstItem="lsc-uX-Xvc" firstAttribute="top" secondItem="mXw-M5-LyV" secondAttribute="top" id="k1S-jq-ar9"/>
+                            <constraint firstItem="lsc-uX-Xvc" firstAttribute="top" relation="greaterThanOrEqual" secondItem="mXw-M5-LyV" secondAttribute="top" id="p6i-Le-842"/>
+                            <constraint firstItem="lsc-uX-Xvc" firstAttribute="centerX" secondItem="mXw-M5-LyV" secondAttribute="centerX" id="rUy-HW-jM2"/>
+                            <constraint firstItem="lsc-uX-Xvc" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="itI-sa-Abf" secondAttribute="leading" id="s4Z-99-CJZ"/>
                             <constraint firstItem="CEd-Ev-Wgj" firstAttribute="centerY" secondItem="itI-sa-Abf" secondAttribute="centerY" id="z9m-Rh-tVU"/>
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="mXw-M5-LyV"/>
                     </view>
                     <connections>
                         <outlet property="scrollView" destination="lsc-uX-Xvc" id="MLN-Sr-5yd"/>
+                        <outlet property="scrollViewHeight" destination="92x-8b-a8g" id="6RJ-O8-CWL"/>
+                        <outlet property="scrollViewWidth" destination="f0w-VM-BLo" id="MWZ-yR-fV3"/>
                         <outlet property="spinner" destination="CEd-Ev-Wgj" id="PRW-NE-wsF"/>
                     </connections>
                 </viewController>

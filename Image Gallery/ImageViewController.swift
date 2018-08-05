@@ -10,46 +10,100 @@ import UIKit
 
 class ImageViewController: UIViewController, UIScrollViewDelegate {
 
+	// MARK: View
 	@IBOutlet weak var spinner: UIActivityIndicatorView!
 	
-	var url: URL! {
-		didSet {
-			guard let imageURL = url?.imageURL else { return }
-			DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-				let data = try? Data(contentsOf: imageURL)
-				if let imageData = data {
-					DispatchQueue.main.async {
-						let image = UIImage(data: imageData)
-						self?.imageView = UIImageView(image: image)
-					}
-				}
-			}
-		}
-	}
+	@IBOutlet weak var scrollViewHeight: NSLayoutConstraint!
+	@IBOutlet weak var scrollViewWidth: NSLayoutConstraint!
 	
-	var imageView: UIImageView! {
-		didSet {
-			scrollView?.addSubview(imageView)
-			scrollView?.contentSize = imageView.frame.size
-			spinner.stopAnimating()
-		}
-	}
+	var imageView = UIImageView()
 	
 	@IBOutlet weak var scrollView: UIScrollView! {
 		didSet {
 			scrollView.delegate = self
 			scrollView.minimumZoomScale = 0.2
 			scrollView.maximumZoomScale = 5.0
+			scrollView.addSubview(imageView)
 		}
 	}
 	
-	func viewForZooming(in scrollView: UIScrollView) -> UIView? {
-		if let imageView = self.imageView {
-			return imageView
-		} else {
-			return nil
+	// MARK: Model
+	var url: URL? {
+		didSet {
+			image = nil // reset image when url changes
+			
+			if view.window != nil { // only fetch image if the outlet for the view is set
+				fetchImage()
+			}
 		}
 	}
+	
+	var image: UIImage? {
+		get {
+			return imageView.image
+		}
+		set {
+			print("image set")
+			scrollView?.zoomScale = 1.0
+			// after image is loaded, set image view and resize the image view, and scroll view content size
+			imageView.image = newValue
+			let size = newValue?.size ?? CGSize(width: 0, height: 0)
+			imageView.frame = CGRect(origin: CGPoint(x: 0, y: 0), size: size)
+			imageView.setNeedsDisplay()
+			scrollView?.contentSize = size
+			scrollViewHeight?.constant = size.height
+			scrollViewWidth?.constant = size.width
+			// reset zoom factor to display picture to the bounds of either height or width
+			let widthScaleFactor = view.bounds.size.width / size.width
+			let heightScaleFactor = view.bounds.size.height / size.height
+			scrollView?.zoomScale = max(widthScaleFactor, heightScaleFactor)
+			spinner?.stopAnimating()
+		}
+	}
+	
+	// MARK: Async calls to fetch image
+	override func viewDidAppear(_ animated: Bool) {
+		super.viewDidAppear(animated)
+		if image == nil {
+			fetchImage()
+		}
+	}
+
+	private func fetchImage() {
+		guard let imageURL = url?.imageURL else { return }
+		spinner.startAnimating()
+		DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+			let data = try? Data(contentsOf: imageURL)
+			if let imageData = data {
+				DispatchQueue.main.async {
+					self?.image = UIImage(data: imageData)
+				}
+			}
+		}
+	}
+	
+	// MARK: Zooming
+	func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+		return imageView
+	}
+	
+	func scrollViewDidZoom(_ scrollView: UIScrollView) {
+		scrollViewHeight.constant = scrollView.contentSize.height
+		scrollViewWidth.constant = scrollView.contentSize.width
+	}
+	
+//	func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+//		guard let contentView = view else { return }
+//		// set scroll view constraint to equal content when zooming out
+//		if scale < 1.0 {
+//			scrollViewHeight.constant = contentView.frame.height
+//			scrollViewWidth.constant = contentView.frame.width
+//		} else {
+//			scrollViewHeight.constant = self.view.frame.height
+//			scrollViewWidth.constant = self.view.frame.width
+//		}
+//	}
+	
 	
 	
 	
