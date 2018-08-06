@@ -15,6 +15,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 		super.viewDidLoad()
 		// The navigation bar button provides the same functionality as swipe left to reveal master list of image galleries
 		navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
+		navigationItem.title = imageGallery.galleryName
 	}
 	
 	
