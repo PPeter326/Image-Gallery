@@ -8,19 +8,19 @@
 
 import UIKit
 
-class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDropDelegate, UICollectionViewDragDelegate, UIDropInteractionDelegate {
+class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDropDelegate, UICollectionViewDragDelegate {
 	
 	// MARK: - Model
 	var imageGallery = ImageGallery()
 	
 	// MARK: - Navigation item configuration
 	
-	let trashCanButton: UIButton = {
-		let button = UIButton()
-		button.frame = CGRect(x: 0, y: 0, width: 15, height: 15)
-		button.setBackgroundImage(UIImage(named: "trashcan2"), for: .normal)
-		return button
-	}()
+//	let trashCanButton: UIButton = {
+//		let button = UIButton()
+//		button.frame = CGRect(x: 0, y: 0, width: 15, height: 15)
+//		button.setBackgroundImage(UIImage(named: "trashcan2"), for: .normal)
+//		return button
+//	}()
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
@@ -28,37 +28,64 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 		navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
 		navigationItem.title = imageGallery.galleryName
 		
-		let drop = UIDropInteraction(delegate: self)
-		trashCanButton.addInteraction(drop)
-		navigationItem.rightBarButtonItem = UIBarButtonItem(customView: trashCanButton)
+//		let drop = UIDropInteraction(delegate: self)
+//		trashCanButton.addInteraction(drop)
+//		navigationItem.rightBarButtonItem = UIBarButtonItem(customView: trashCanButton)
 	}
 	
-	// MARK: Drop to trashcan bar button
-	func dropInteraction(_ interaction: UIDropInteraction, canHandle session: UIDropSession) -> Bool {
-		return session.canLoadObjects(ofClass: NSURL.self)
-	}
+	var dragSession: UIDragSession?
 	
-	func dropInteraction(_ interaction: UIDropInteraction, sessionDidUpdate session: UIDropSession) -> UIDropProposal {
-		return UIDropProposal(operation: UIDropOperation.move)
-	}
-	
-	func dropInteraction(_ interaction: UIDropInteraction, performDrop session: UIDropSession) {
+	@IBAction func springLoaded(_ sender: UIBarButtonItem) {
 		
-		if let dragItems = session.localDragSession?.items {
-			for dragItem in dragItems {
-				
-//				guard let sourceIndexPath = dragItem.sourceIndexPath, let imageTask = dragItem.dragItem.localObject as? ImageTask else { return }
-//				imageGalleryCollectionView.performBatchUpdates({
-//					self.imageGallery.imageTasks.remove(at: sourceIndexPath.item)
-//					self.imageGallery.imageTasks.insert(imageTask, at: destinationIndexPath.item)
-//					imageGalleryCollectionView.deleteItems(at: [sourceIndexPath])
-//					imageGalleryCollectionView.insertItems(at: [destinationIndexPath])
-//				})
-//				coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
+		// look for the item from drag session
+		if let session = dragSession {
+			if (session.localContext as? UICollectionView) == imageGalleryCollectionView {
+				let dragItems = session.items
+				for item in dragItems {
+					guard let imageTask = item.localObject as? ImageTask else { return }
+					guard let index = imageGallery.imageTasks.index(of: imageTask) else { return }
+					
+					imageGalleryCollectionView.performBatchUpdates({
+						imageGallery.imageTasks.remove(at: index)
+						imageGalleryCollectionView.deleteItems(at: [IndexPath(item: index, section: 0)])
+					})
+					
+				}
+				// cancel drag session
+				dragSession = nil
 			}
+			
 		}
 		
 	}
+	
+	
+//	// MARK: Drop to trashcan bar button
+//	func dropInteraction(_ interaction: UIDropInteraction, canHandle session: UIDropSession) -> Bool {
+//		return session.canLoadObjects(ofClass: NSURL.self)
+//	}
+//
+//	func dropInteraction(_ interaction: UIDropInteraction, sessionDidUpdate session: UIDropSession) -> UIDropProposal {
+//		return UIDropProposal(operation: UIDropOperation.move)
+//	}
+//
+//	func dropInteraction(_ interaction: UIDropInteraction, performDrop session: UIDropSession) {
+//
+//		if let dragItems = session.localDragSession?.items {
+//			for dragItem in dragItems {
+//
+////				guard let sourceIndexPath = dragItem.sourceIndexPath, let imageTask = dragItem.dragItem.localObject as? ImageTask else { return }
+////				imageGalleryCollectionView.performBatchUpdates({
+////					self.imageGallery.imageTasks.remove(at: sourceIndexPath.item)
+////					self.imageGallery.imageTasks.insert(imageTask, at: destinationIndexPath.item)
+////					imageGalleryCollectionView.deleteItems(at: [sourceIndexPath])
+////					imageGalleryCollectionView.insertItems(at: [destinationIndexPath])
+////				})
+////				coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
+//			}
+//		}
+//
+//	}
 	
 	// MARK: - COLLECTION VIEW
 	// MARK: Outlet
@@ -125,6 +152,8 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 	func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
 		// Provide local context to drag session, so that it'll be easy to distinguish in-app vs external drag
 		session.localContext = collectionView
+		// save reference to drag session
+		dragSession = session
 		return dragItems(at: indexPath)
 	}
 	

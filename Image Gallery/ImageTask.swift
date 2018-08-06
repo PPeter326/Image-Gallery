@@ -9,7 +9,20 @@
 import Foundation
 import UIKit
 
-class ImageTask {
+class ImageTask: Hashable {
+	
+	private static var identifier: Int = 0
+	
+	private var identifier: Int
+	
+	var hashValue: Int {
+		return identifier
+	}
+	
+	static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
+		return lhs.hashValue == rhs.hashValue
+	}
+	
 	
 	var url: URL?
 	var aspectRatio: CGFloat?
@@ -18,6 +31,7 @@ class ImageTask {
 	
 	init(handler: @escaping (ImageTask) -> Void) {
 		self.handler = handler
+		identifier = ImageTask.makeIdentifier()
 	}
 	
 	func process() {
@@ -39,6 +53,11 @@ class ImageTask {
 				completion(nil)
 			}
 		}
+	}
+	
+	private static func makeIdentifier() -> Int {
+		identifier += 1
+		return identifier
 	}
 	
 }

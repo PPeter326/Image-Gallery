@@ -147,7 +147,13 @@
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                     </view>
-                    <navigationItem key="navigationItem" id="gsq-pK-Uqr"/>
+                    <navigationItem key="navigationItem" id="gsq-pK-Uqr">
+                        <barButtonItem key="rightBarButtonItem" springLoaded="YES" style="plain" systemItem="trash" id="x2i-8x-0ar">
+                            <connections>
+                                <action selector="springLoaded:" destination="BYZ-38-t0r" id="jNd-C7-tob"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
                     <connections>
                         <outlet property="imageGalleryCollectionView" destination="djZ-vr-rNU" id="4hl-Nd-YD0"/>
                     </connections>
