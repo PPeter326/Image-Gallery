@@ -27,16 +27,16 @@ class ImageTask: Hashable {
     var url: URL?
     var aspectRatio: CGFloat?
     
-    private var handler: (ImageTask) -> Void
+    private var handler: ((ImageTask) -> Void)?
     
-    init(handler: @escaping (ImageTask) -> Void) {
+    init(handler: ((ImageTask) -> Void)? = nil) {
         self.handler = handler
         identifier = ImageTask.makeIdentifier()
     }
     
     func process() {
         if url != nil && aspectRatio != nil {
-            handler(self)
+            handler?(self)
         }
     }
     
