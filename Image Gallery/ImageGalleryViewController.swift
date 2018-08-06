@@ -85,7 +85,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
         if let imageCell = cell as? ImageCollectionViewCell {
             imageCell.spinner.isHidden = false
             let imageTask = imageGallery.imageTasks[indexPath.item]
-            imageTask.fetchImage { (image) in
+			fetchImage(url: imageTask.url!) { (image) in
                 if let image = image {
                     imageCell.imageView.image = image
                 } else {
@@ -98,7 +98,20 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
         }
         return cell
     }
-    
+	
+	private  func fetchImage(url: URL ,completion: @escaping (UIImage?) -> Void) {
+		DispatchQueue.global(qos: .userInitiated).async {
+			let data = try? Data(contentsOf: url.imageURL)
+			if let imageData = data {
+				DispatchQueue.main.async {
+					let image = UIImage(data: imageData)
+					completion(image)
+				}
+			} else {
+				completion(nil)
+			}
+		}
+	}
     // MARK: Layout
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let cellWidth = view.frame.width.zoomedBy(zoomFactor)
@@ -193,12 +206,13 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
                 // Use placeholder cell while waiting for image and url to load.  The image task handler will replace placeholder cell with final content when both image and url are loaded.
                 let placeHolder = UICollectionViewDropPlaceholder(insertionIndexPath: destinationIndexPath, reuseIdentifier: "DropPlaceholderCell")
                 let placeholderContext = coordinator.drop(item.dragItem, to: placeHolder)
-                let imageTask = ImageTask { imageTask in
-                    // weak reference to view controller because user may switch to a different document before image is loaded
-                    placeholderContext.commitInsertion(dataSourceUpdates: { [weak self] indexPath in
-                        self?.imageGallery.imageTasks.insert(imageTask, at: indexPath.item)
-                    })
-                }
+				let taskHandler = TaskHandler { imageTask in
+					// weak reference to view controller because user may switch to a different document before image is loaded
+					placeholderContext.commitInsertion(dataSourceUpdates: { [weak self] indexPath in
+						self?.imageGallery.imageTasks.insert(imageTask, at: indexPath.item)
+					})
+				}
+                let imageTask = ImageTask()
                 
                 // load URL and image asynchronously, then process handler
                 item.dragItem.itemProvider.loadObject(ofClass: NSURL.self) { (provider, error) in
@@ -206,7 +220,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
                     DispatchQueue.main.async {
                         if let imageURL = provider as? URL {
                             imageTask.url = imageURL
-                            imageTask.process()
+                            taskHandler.process(imageTask: imageTask)
                         }
                     }
                 }
@@ -215,7 +229,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
                         if let image = provider as? UIImage {
                             let aspectRatio = AspectRatio.calcAspectRatio(size: image.size)
                             imageTask.aspectRatio = aspectRatio
-                            imageTask.process()
+                            taskHandler.process(imageTask: imageTask)
                         }
                     }
                 }
