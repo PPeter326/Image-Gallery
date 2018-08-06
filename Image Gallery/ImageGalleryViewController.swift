@@ -34,8 +34,31 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 	}
 	
 	// MARK: Drop to trashcan bar button
+	func dropInteraction(_ interaction: UIDropInteraction, canHandle session: UIDropSession) -> Bool {
+		return session.canLoadObjects(ofClass: NSURL.self)
+	}
 	
+	func dropInteraction(_ interaction: UIDropInteraction, sessionDidUpdate session: UIDropSession) -> UIDropProposal {
+		return UIDropProposal(operation: UIDropOperation.move)
+	}
 	
+	func dropInteraction(_ interaction: UIDropInteraction, performDrop session: UIDropSession) {
+		
+		if let dragItems = session.localDragSession?.items {
+			for dragItem in dragItems {
+				
+//				guard let sourceIndexPath = dragItem.sourceIndexPath, let imageTask = dragItem.dragItem.localObject as? ImageTask else { return }
+//				imageGalleryCollectionView.performBatchUpdates({
+//					self.imageGallery.imageTasks.remove(at: sourceIndexPath.item)
+//					self.imageGallery.imageTasks.insert(imageTask, at: destinationIndexPath.item)
+//					imageGalleryCollectionView.deleteItems(at: [sourceIndexPath])
+//					imageGalleryCollectionView.insertItems(at: [destinationIndexPath])
+//				})
+//				coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
+			}
+		}
+		
+	}
 	
 	// MARK: - COLLECTION VIEW
 	// MARK: Outlet
