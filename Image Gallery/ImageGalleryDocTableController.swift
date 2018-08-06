@@ -45,8 +45,6 @@ class ImageGalleryDocTableController: UITableViewController {
 		return section == GallerySection.recentlyDeleted ? "Recently Deleted" : nil
 	}
 	
-//	private var font = UIFontMetrics(forTextStyle: .body).scaledFont(for: UIFont.preferredFont(forTextStyle: .body)).withSize(30.0)
-
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
 		let cell = tableView.dequeueReusableCell(withIdentifier: "DocumentCell", for: indexPath)
 		if let imageGalleryTableViewCell = cell as? ImageGalleryTableViewCell {
@@ -56,7 +54,6 @@ class ImageGalleryDocTableController: UITableViewController {
 				imageGalleryTableViewCell.resignHandler = { [weak self, unowned imageGalleryTableViewCell] in
 					if let updatedName = imageGalleryTableViewCell.galleryNameTextField.text {
 						self?.imageGalleries[indexPath.row].galleryName = updatedName
-//						tableView?.reloadData()
 					}
 				}
 			case GallerySection.recentlyDeleted:
@@ -65,7 +62,6 @@ class ImageGalleryDocTableController: UITableViewController {
 					if let updatedName = imageGalleryTableViewCell.galleryNameTextField.text {
 						self?.recentlyDeletedImageGalleries[indexPath.row].galleryName = updatedName
 					}
-//					tableView?.reloadData()
 				}
 			default: break
 			}
@@ -81,15 +77,6 @@ class ImageGalleryDocTableController: UITableViewController {
 	
 	// MARK: - Table view selection
 	
-	
-    /*
-    // Override to support conditional editing of the table view.
-    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the specified item to be editable.
-        return true
-    }
-    */
-
     /*
 	If user swipe to delete an image gallery in the "created" (there's no title) section, the gallery object will be moved to the recently deleted section
 	If user swipe to delete an image gallery from the recently deleted section, the gallery object will be permanently removed
@@ -97,6 +84,7 @@ class ImageGalleryDocTableController: UITableViewController {
 	override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
 		if editingStyle == .delete {
 			var imageGalleryUpdate: ((IndexPath) -> Void)?
+			
 			switch indexPath.section {
 			case GallerySection.created:
 				imageGalleryUpdate = deleteImageGallery
@@ -104,6 +92,7 @@ class ImageGalleryDocTableController: UITableViewController {
 				imageGalleryUpdate = permanentDeleteImageGallery
 			default: break
 			}
+			
 			tableView.performBatchUpdates({
 				imageGalleryUpdate?(indexPath)
 			})
@@ -113,7 +102,6 @@ class ImageGalleryDocTableController: UITableViewController {
 	override func tableView(_ tableView: UITableView, leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
 		if indexPath.section == GallerySection.recentlyDeleted {
 			let undeleteSwipeActionConfiguration = UISwipeActionsConfiguration(actions: [makeUndeleteCellAction(at: indexPath)])
-//			undeleteSwipeActionConfiguration.performsFirstActionWithFullSwipe = true
 			return undeleteSwipeActionConfiguration
 		} else {
 			return nil
@@ -161,26 +149,9 @@ class ImageGalleryDocTableController: UITableViewController {
 		}
 		tableView.insertRows(at: [IndexPath(row: self.imageGalleries.index(of: gallery)!, section: GallerySection.created)], with: .automatic)
 	}
-
-    /*
-    // Override to support rearranging the table view.
-    override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
-
-    }
-    */
-
-    /*
-    // Override to support conditional rearranging of the table view.
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
-    }
-    */
-
 	
     // MARK: - Navigation
 
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
 		
 		guard sender is UITableViewCell else { return }

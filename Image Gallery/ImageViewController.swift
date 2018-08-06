@@ -27,6 +27,8 @@ class ImageViewController: UIViewController, UIScrollViewDelegate {
 		}
 	}
 	
+	
+	
 	// MARK: Model
 	var url: URL? {
 		didSet {
@@ -43,7 +45,6 @@ class ImageViewController: UIViewController, UIScrollViewDelegate {
 			return imageView.image
 		}
 		set {
-			print("image set")
 			scrollView?.zoomScale = 1.0
 			// after image is loaded, set image view and resize the image view, and scroll view content size
 			imageView.image = newValue
@@ -92,20 +93,4 @@ class ImageViewController: UIViewController, UIScrollViewDelegate {
 		scrollViewWidth.constant = scrollView.contentSize.width
 	}
 	
-//	func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
-//		guard let contentView = view else { return }
-//		// set scroll view constraint to equal content when zooming out
-//		if scale < 1.0 {
-//			scrollViewHeight.constant = contentView.frame.height
-//			scrollViewWidth.constant = contentView.frame.width
-//		} else {
-//			scrollViewHeight.constant = self.view.frame.height
-//			scrollViewWidth.constant = self.view.frame.width
-//		}
-//	}
-	
-	
-	
-	
-
 }

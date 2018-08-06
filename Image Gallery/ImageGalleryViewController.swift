@@ -10,6 +10,14 @@ import UIKit
 
 class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDropDelegate, UICollectionViewDragDelegate {
 	
+	// MARK: ViewController
+	override func viewDidLoad() {
+		super.viewDidLoad()
+		// The navigation bar button provides the same functionality as swipe left to reveal master list of image galleries
+		navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
+	}
+	
+	
 	// MARK: - COLLECTION VIEW
 
     @IBOutlet weak var imageGalleryCollectionView: UICollectionView! {
@@ -121,6 +129,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 	
 	func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
 		for item in coordinator.items {
+			
 			if item.isLocal {
 				
 				guard let sourceIndexPath = item.sourceIndexPath, let destinationIndexPath = coordinator.destinationIndexPath, let imageTask = item.dragItem.localObject as? ImageTask else { return }
