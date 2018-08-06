@@ -15,22 +15,12 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
     
     // MARK: - Navigation item configuration
     
-//    let trashCanButton: UIButton = {
-//        let button = UIButton()
-//        button.frame = CGRect(x: 0, y: 0, width: 15, height: 15)
-//        button.setBackgroundImage(UIImage(named: "trashcan2"), for: .normal)
-//        return button
-//    }()
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         // The navigation bar button provides the same functionality as swipe left to reveal master list of image galleries
         navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
         navigationItem.title = imageGallery.galleryName
         
-//        let drop = UIDropInteraction(delegate: self)
-//        trashCanButton.addInteraction(drop)
-//        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: trashCanButton)
     }
     
     var dragSession: UIDragSession?
@@ -57,11 +47,8 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 					dragSession = nil
 				}
             }
-            
         }
-        
     }
-    
 	
     // MARK: - COLLECTION VIEW
     // MARK: Outlet

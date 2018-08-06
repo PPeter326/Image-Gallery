@@ -23,23 +23,13 @@ class ImageTask: Hashable, Codable {
         return lhs.hashValue == rhs.hashValue
     }
     
-    
     var url: URL?
     var aspectRatio: CGFloat?
-    
-//    private var handler: ((ImageTask) -> Void)?
 	
     init() {
-//        self.handler = handler
         identifier = ImageTask.makeIdentifier()
     }
 	
-	
-
-	
-    
-   
-    
     private static func makeIdentifier() -> Int {
         identifier += 1
         return identifier

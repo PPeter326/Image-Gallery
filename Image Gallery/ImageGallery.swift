@@ -8,7 +8,7 @@
 
 import Foundation
 
-class ImageGallery: Hashable {
+class ImageGallery: Hashable, Codable {
 	
 	private static var identifier: Int = 0
 	
