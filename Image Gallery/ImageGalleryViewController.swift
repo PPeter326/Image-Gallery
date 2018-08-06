@@ -8,31 +8,45 @@
 
 import UIKit
 
-class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDropDelegate, UICollectionViewDragDelegate {
+class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDropDelegate, UICollectionViewDragDelegate, UIDropInteractionDelegate {
 	
-	// MARK: ViewController
+	// MARK: - Model
+	var imageGallery = ImageGallery()
+	
+	// MARK: - Navigation item configuration
+	
+	let trashCanButton: UIButton = {
+		let button = UIButton()
+		button.frame = CGRect(x: 0, y: 0, width: 15, height: 15)
+		button.setBackgroundImage(UIImage(named: "trashcan2"), for: .normal)
+		return button
+	}()
+	
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		// The navigation bar button provides the same functionality as swipe left to reveal master list of image galleries
 		navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
 		navigationItem.title = imageGallery.galleryName
+		
+		let drop = UIDropInteraction(delegate: self)
+		trashCanButton.addInteraction(drop)
+		navigationItem.rightBarButtonItem = UIBarButtonItem(customView: trashCanButton)
 	}
+	
+	// MARK: Drop to trashcan bar button
+	
 	
 	
 	// MARK: - COLLECTION VIEW
-
-    @IBOutlet weak var imageGalleryCollectionView: UICollectionView! {
-        didSet {
-            imageGalleryCollectionView.dropDelegate = self
+	// MARK: Outlet
+	@IBOutlet weak var imageGalleryCollectionView: UICollectionView! {
+		didSet {
+			imageGalleryCollectionView.dropDelegate = self
 			imageGalleryCollectionView.dragDelegate = self
 			let pinch = UIPinchGestureRecognizer(target: self, action: #selector(zoom(_:)))
 			imageGalleryCollectionView.addGestureRecognizer(pinch)
-        }
-    }
-	
-	// MARK: Data
-	var imageGallery = ImageGallery()
-	
+		}
+	}
 	
 	// MARK: View
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -181,7 +195,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 		}
 	}
 	
-	// MARK: Gesture
+	// MARK: - Gesture
 	@objc func zoom(_ pinchGestureRecognizer: UIPinchGestureRecognizer) {
 		switch pinchGestureRecognizer.state {
 		case .changed: // changes the zoom factor by the scale
