@@ -106,6 +106,7 @@ class ImageGalleryDocTableController: UITableViewController {
 				imageGalleryTableViewCell.resignHandler = { [weak self, unowned imageGalleryTableViewCell] in
 					if let updatedName = imageGalleryTableViewCell.galleryNameTextField.text {
 						self?.imageGalleries[indexPath.row].galleryName = updatedName
+						self?.writeImageGalleriesToDefaults(galleryName: .created)
 					}
 				}
 			case GallerySection.recentlyDeleted:
@@ -113,6 +114,7 @@ class ImageGalleryDocTableController: UITableViewController {
 				imageGalleryTableViewCell.resignHandler = { [weak self, unowned imageGalleryTableViewCell] in
 					if let updatedName = imageGalleryTableViewCell.galleryNameTextField.text {
 						self?.recentlyDeletedImageGalleries[indexPath.row].galleryName = updatedName
+						self?.writeImageGalleriesToDefaults(galleryName: .recentlyDeleted)
 					}
 				}
 			default: break

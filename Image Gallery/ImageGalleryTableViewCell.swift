@@ -14,7 +14,6 @@ class ImageGalleryTableViewCell: UITableViewCell, UITextFieldDelegate {
 		didSet {
 			galleryNameTextField.delegate = self
 			galleryNameTextField.isEnabled = false
-
 		}
 	}
 	
