@@ -12,13 +12,20 @@ class ImageGalleryDocTableController: UITableViewController {
 
 	
 	// MARK: data
-	let defaults = UserDefaults.standard
-	lazy private var imageGalleries = readImageGalleriesFromDefaults()
-	private var recentlyDeletedImageGalleries: [ImageGallery] = []
+	private let defaults = UserDefaults.standard
+	lazy private var imageGalleries: [ImageGallery] = readImageGalleriesFromDefaults(galleryName: .created)
+	lazy private var recentlyDeletedImageGalleries: [ImageGallery] = readImageGalleriesFromDefaults(galleryName: .recentlyDeleted)
 	
-	private func readImageGalleriesFromDefaults() -> [ImageGallery] {
+	private func readImageGalleriesFromDefaults(galleryName: GalleryName) -> [ImageGallery] {
 		var imageGalleries = [ImageGallery]()
-		if let imageGalleriesData = defaults.object(forKey: "ImageGalleriesData") as? [Data] {
+		var key: String
+		switch galleryName {
+		case .created:
+			key = DefaultsKey.imageGalleriesData
+		case .recentlyDeleted:
+			key = DefaultsKey.recentlyDeletedImageGalleriesData
+		}
+		if let imageGalleriesData = defaults.object(forKey: key) as? [Data] {
 			for data in imageGalleriesData {
 				if let imageGallery = try? JSONDecoder().decode(ImageGallery.self, from: data) {
 					imageGalleries.append(imageGallery)
@@ -28,17 +35,27 @@ class ImageGalleryDocTableController: UITableViewController {
 		return imageGalleries
 	}
 	
-	private func writeImageGalleriesToDefaults() {
-		
+	private func writeImageGalleriesToDefaults(galleryName: GalleryName) {
 		var imageGalleriesData = [Data]()
-		for imageGallery in imageGalleries {
-			if let data = try? JSONEncoder().encode(imageGallery) {
-				imageGalleriesData.append(data)
+		switch galleryName {
+		case .created:
+			for imageGallery in imageGalleries {
+				if let data = try? JSONEncoder().encode(imageGallery) {
+					imageGalleriesData.append(data)
+				}
 			}
+			defaults.setValue(imageGalleriesData, forKey: DefaultsKey.imageGalleriesData)
+		case .recentlyDeleted:
+			for recentlyDeleteimageGallery in recentlyDeletedImageGalleries {
+				if let data = try? JSONEncoder().encode(recentlyDeleteimageGallery) {
+					imageGalleriesData.append(data)
+				}
+			}
+			defaults.setValue(imageGalleriesData, forKey: DefaultsKey.recentlyDeletedImageGalleriesData)
 		}
-		defaults.setValue(imageGalleriesData, forKey: "ImageGalleriesData")
-//		let imageGalleriesNames = imageGalleries.map { $0.galleryName }
-//		defaults.setValue(imageGalleriesNames, forKey: DefaultsKey.imageGalleries)
+		if !defaults.synchronize() {
+			print("failed to synchronize")
+		}
 	}
 
 	override func viewWillLayoutSubviews() {
@@ -49,7 +66,13 @@ class ImageGalleryDocTableController: UITableViewController {
 	}
 	
 	private struct DefaultsKey {
-		static let imageGalleries: String = "Image Galleries"
+		static let imageGalleriesData: String = "Image Galleries Data"
+		static let recentlyDeletedImageGalleriesData: String = "Recently Deleted Image Galleries Data"
+	}
+	
+	private enum GalleryName {
+		case created
+		case recentlyDeleted
 	}
 
     // MARK: - Table view data source
@@ -102,7 +125,7 @@ class ImageGalleryDocTableController: UITableViewController {
 		let galleryNames = imageGalleries.map { $0.galleryName }
 		imageGalleries.append(ImageGallery(galleryName: "Gallery".madeUnique(withRespectTo: galleryNames)))
 		tableView.reloadData()
-		writeImageGalleriesToDefaults()
+		writeImageGalleriesToDefaults(galleryName: .created)
 	}
 	
 	// MARK: - Table view selection
@@ -122,7 +145,6 @@ class ImageGalleryDocTableController: UITableViewController {
 				imageGalleryUpdate = permanentDeleteImageGallery
 			default: break
 			}
-			
 			tableView.performBatchUpdates({
 				imageGalleryUpdate?(indexPath)
 			})
@@ -158,6 +180,8 @@ class ImageGalleryDocTableController: UITableViewController {
 			tableView.insertSections(IndexSet(integer: 1), with: .automatic)
 		}
 		tableView.insertRows(at: [IndexPath(row: recentlyDeletedImageGalleries.index(of: gallery)!, section: GallerySection.recentlyDeleted)], with: UITableViewRowAnimation.automatic)
+		writeImageGalleriesToDefaults(galleryName: .created)
+		writeImageGalleriesToDefaults(galleryName: .recentlyDeleted)
 	}
 	
 	private func permanentDeleteImageGallery(at indexPath: IndexPath) {
@@ -166,6 +190,7 @@ class ImageGalleryDocTableController: UITableViewController {
 		if recentlyDeletedImageGalleries.isEmpty {
 			tableView.deleteSections(IndexSet(integer: 1), with: .automatic)
 		}
+		writeImageGalleriesToDefaults(galleryName: .recentlyDeleted)
 	}
 	private func undeleteImageGallery(at indexPath: IndexPath) {
 		// update model and tableview
@@ -178,6 +203,8 @@ class ImageGalleryDocTableController: UITableViewController {
 			tableView.insertSections(IndexSet(integer: 1), with: .automatic)
 		}
 		tableView.insertRows(at: [IndexPath(row: self.imageGalleries.index(of: gallery)!, section: GallerySection.created)], with: .automatic)
+		writeImageGalleriesToDefaults(galleryName: .created)
+		writeImageGalleriesToDefaults(galleryName: .recentlyDeleted)
 	}
 	
     // MARK: - Navigation
