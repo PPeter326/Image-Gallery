@@ -12,18 +12,47 @@ class ImageGalleryDocTableController: UITableViewController {
 
 	
 	// MARK: data
-	private var imageGalleries: [ImageGallery] = []
+	let defaults = UserDefaults.standard
+	lazy private var imageGalleries = readImageGalleriesFromDefaults()
 	private var recentlyDeletedImageGalleries: [ImageGallery] = []
 	
+	private func readImageGalleriesFromDefaults() -> [ImageGallery] {
+		var imageGalleries = [ImageGallery]()
+		if let imageGalleriesData = defaults.object(forKey: "ImageGalleriesData") as? [Data] {
+			for data in imageGalleriesData {
+				if let imageGallery = try? JSONDecoder().decode(ImageGallery.self, from: data) {
+					imageGalleries.append(imageGallery)
+				}
+			}
+		}
+		return imageGalleries
+	}
+	
+	private func writeImageGalleriesToDefaults() {
+		
+		var imageGalleriesData = [Data]()
+		for imageGallery in imageGalleries {
+			if let data = try? JSONEncoder().encode(imageGallery) {
+				imageGalleriesData.append(data)
+			}
+		}
+		defaults.setValue(imageGalleriesData, forKey: "ImageGalleriesData")
+//		let imageGalleriesNames = imageGalleries.map { $0.galleryName }
+//		defaults.setValue(imageGalleriesNames, forKey: DefaultsKey.imageGalleries)
+	}
+
 	override func viewWillLayoutSubviews() {
 		super.viewWillLayoutSubviews()
 		if splitViewController?.preferredDisplayMode != .primaryOverlay {
 			splitViewController?.preferredDisplayMode = .primaryOverlay
 		}
 	}
+	
+	private struct DefaultsKey {
+		static let imageGalleries: String = "Image Galleries"
+	}
 
     // MARK: - Table view data source
-	
 	private struct GallerySection {
 		static let created: Int = 0
 		static let recentlyDeleted: Int = 1
@@ -73,6 +102,7 @@ class ImageGalleryDocTableController: UITableViewController {
 		let galleryNames = imageGalleries.map { $0.galleryName }
 		imageGalleries.append(ImageGallery(galleryName: "Gallery".madeUnique(withRespectTo: galleryNames)))
 		tableView.reloadData()
+		writeImageGalleriesToDefaults()
 	}
 	
 	// MARK: - Table view selection
