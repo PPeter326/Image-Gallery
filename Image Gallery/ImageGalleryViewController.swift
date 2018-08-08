@@ -11,8 +11,20 @@ import UIKit
 class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDropDelegate, UICollectionViewDragDelegate {
     
     // MARK: - Model
-    var imageGallery = ImageGallery()
-    
+	var imageGallery = ImageGallery() {
+		didSet {
+			writeImageGalleryToDefault()
+		}
+	}
+	private let defaults = UserDefaults.standard
+	
+	private func writeImageGalleryToDefault() {
+		let hashValue = imageGallery.hashValue
+		if let imageData = try? JSONEncoder().encode(imageGallery) {
+			defaults.setValue(imageData, forKey: String(hashValue))
+		}
+	}
+	
     // MARK: - Navigation item configuration
     
     override func viewDidLoad() {
