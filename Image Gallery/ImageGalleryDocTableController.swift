@@ -61,6 +61,52 @@ class ImageGalleryDocTableController: UITableViewController {
 		}
 		defaults.setValue(imageGalleriesHashValues, forKey: defaultsKey)
 	}
+	
+	weak var timer: Timer?
+	var selectedRowIndexPath: IndexPath?
+	private func deselectRow() {
+		selectedRowIndexPath = nil
+		performSegue(withIdentifier: SegueName.chooseGallery, sender: nil)
+
+	}
+	private func showSelectedImageGallery(at indexPath: IndexPath) {
+		timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false, block: { [weak self] (timer) in
+			self?.tableView.selectRow(at: indexPath, animated: false, scrollPosition: .none)
+			// get the cell, then perform segue using the cell
+			if let cell = self?.tableView.cellForRow(at: indexPath) as? ImageGalleryTableViewCell {
+				self?.performSegue(withIdentifier: SegueName.chooseGallery, sender: cell)
+			}
+		})
+	}
+	
+	private func selectFirstImageGallery() {
+		let indexPath = IndexPath(row: imageGalleries.startIndex, section: GallerySection.created)
+		timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false, block: { [weak self] (timer) in
+			self?.tableView.selectRow(at: indexPath, animated: false, scrollPosition: .none)
+			// get the cell, then perform segue using the cell
+			if let cell = self?.tableView.cellForRow(at: indexPath) as? ImageGalleryTableViewCell {
+				self?.performSegue(withIdentifier: SegueName.chooseGallery, sender: cell)
+			}
+		})
+	}
+	override func viewDidAppear(_ animated: Bool) {
+		super.viewDidAppear(animated)
+		if !imageGalleries.isEmpty {
+			if selectedRowIndexPath == nil {
+				selectFirstImageGallery()
+			} else {
+				showSelectedImageGallery(at: selectedRowIndexPath!)
+			}
+		}
+	}
+	
+	override func viewDidDisappear(_ animated: Bool) {
+		super.viewDidDisappear(animated)
+		if let selectedRowIndexPath = tableView.indexPathForSelectedRow {
+			self.selectedRowIndexPath = selectedRowIndexPath
+		}
+		
+	}
 
 	override func viewWillLayoutSubviews() {
 		super.viewWillLayoutSubviews()
@@ -127,11 +173,20 @@ class ImageGalleryDocTableController: UITableViewController {
         return cell
     }
 	
-	@IBAction func addImageGallery(_ sender: UIBarButtonItem) {
+	fileprivate func createNewGallery() -> ImageGallery{
 		let galleryNames = imageGalleries.map { $0.galleryName }
-		imageGalleries.append(ImageGallery(galleryName: "Gallery".madeUnique(withRespectTo: galleryNames)))
+		let newGallery = ImageGallery(galleryName: "Gallery".madeUnique(withRespectTo: galleryNames))
+		imageGalleries.append(newGallery)
+		return newGallery
+	}
+	
+	@IBAction func addImageGallery(_ sender: UIBarButtonItem) {
+		let newGallery = createNewGallery()
 		tableView.reloadData()
 		writeImageGalleriesToDefaults(galleryName: .created)
+		guard let index = imageGalleries.index(of: newGallery) else { return }
+		let indexPath = IndexPath(row: index, section: GallerySection.created)
+		showSelectedImageGallery(at: indexPath)
 	}
 	
 	// MARK: - Table view selection
@@ -170,7 +225,7 @@ class ImageGalleryDocTableController: UITableViewController {
 		let action = UIContextualAction(style: .normal, title: "Undelete") { (action, view, completed) in
 			self.tableView.performBatchUpdates({ [unowned self] in
 				self.undeleteImageGallery(at: indexPath)
-			})
+				})
 			completed(true)
 		}
 		action.backgroundColor = UIColor.blue
@@ -186,6 +241,7 @@ class ImageGalleryDocTableController: UITableViewController {
 			tableView.insertSections(IndexSet(integer: 1), with: .automatic)
 		}
 		tableView.insertRows(at: [IndexPath(row: recentlyDeletedImageGalleries.index(of: gallery)!, section: GallerySection.recentlyDeleted)], with: UITableViewRowAnimation.automatic)
+		deselectRow()
 		writeImageGalleriesToDefaults(galleryName: .created)
 		writeImageGalleriesToDefaults(galleryName: .recentlyDeleted)
 	}
@@ -196,6 +252,7 @@ class ImageGalleryDocTableController: UITableViewController {
 		if recentlyDeletedImageGalleries.isEmpty {
 			tableView.deleteSections(IndexSet(integer: 1), with: .automatic)
 		}
+		selectedRowIndexPath = nil
 		writeImageGalleriesToDefaults(galleryName: .recentlyDeleted)
 	}
 	private func undeleteImageGallery(at indexPath: IndexPath) {
@@ -208,21 +265,28 @@ class ImageGalleryDocTableController: UITableViewController {
 		if tableView.numberOfSections < 2 {
 			tableView.insertSections(IndexSet(integer: 1), with: .automatic)
 		}
-		tableView.insertRows(at: [IndexPath(row: self.imageGalleries.index(of: gallery)!, section: GallerySection.created)], with: .automatic)
+		let newIndexPath = IndexPath(row: self.imageGalleries.index(of: gallery)!, section: GallerySection.created)
+		tableView.insertRows(at: [newIndexPath], with: .automatic)
+		deselectRow()
+		
 		writeImageGalleriesToDefaults(galleryName: .created)
 		writeImageGalleriesToDefaults(galleryName: .recentlyDeleted)
 	}
 	
     // MARK: - Navigation
 
+	private struct SegueName {
+		static let chooseGallery: String = "ChooseGallery"
+	}
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
 		
-		guard sender is UITableViewCell else { return }
-		guard segue.identifier == "ChooseGallery" else { return }
+		guard segue.identifier == SegueName.chooseGallery else { return }
 		
 		if let imageGalleryVC = segue.destination.contentVC as? ImageGalleryViewController {
 			if let indexPath = tableView.indexPathForSelectedRow, indexPath.section == GallerySection.created {
 				imageGalleryVC.imageGallery = imageGalleries[indexPath.row]
+			} else {
+				imageGalleryVC.imageGallery = nil
 			}
 		}
     }
