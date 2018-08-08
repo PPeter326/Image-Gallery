@@ -25,37 +25,41 @@ class ImageGalleryDocTableController: UITableViewController {
 		case .recentlyDeleted:
 			key = DefaultsKey.recentlyDeletedImageGalleriesData
 		}
-		if let imageGalleriesData = defaults.object(forKey: key) as? [Data] {
-			for data in imageGalleriesData {
-				if let imageGallery = try? JSONDecoder().decode(ImageGallery.self, from: data) {
-					imageGalleries.append(imageGallery)
-				}
+		guard let imageGalleryHashValues = defaults.object(forKey: key) as? [Int] else { return imageGalleries }
+		for imageGalleryHashValue in imageGalleryHashValues {
+			if let imageGalleryData = defaults.object(forKey: String(imageGalleryHashValue)) as? Data, let imageGallery = try? JSONDecoder().decode(ImageGallery.self, from: imageGalleryData)  {
+				imageGalleries.append(imageGallery)
 			}
 		}
+		imageGalleries.sort { $0.hashValue < $1.hashValue }
 		return imageGalleries
 	}
 	
 	private func writeImageGalleriesToDefaults(galleryName: GalleryName) {
-		var imageGalleriesData = [Data]()
+		var imageGalleriesHashValues = [Int]()
+		var defaultsKey: String
 		switch galleryName {
 		case .created:
-			for imageGallery in imageGalleries {
-				if let data = try? JSONEncoder().encode(imageGallery) {
-					imageGalleriesData.append(data)
+			// create a dictionary of gallery names and image gallery object
+			imageGalleries.forEach { imageGallery in
+				let hashValue = imageGallery.hashValue
+				if let imageData = try? JSONEncoder().encode(imageGallery) {
+					defaults.setValue(imageData, forKey: String(hashValue))
+					imageGalleriesHashValues.append(hashValue)
 				}
 			}
-			defaults.setValue(imageGalleriesData, forKey: DefaultsKey.imageGalleriesData)
+			defaultsKey = DefaultsKey.imageGalleriesData
 		case .recentlyDeleted:
-			for recentlyDeleteimageGallery in recentlyDeletedImageGalleries {
-				if let data = try? JSONEncoder().encode(recentlyDeleteimageGallery) {
-					imageGalleriesData.append(data)
+			recentlyDeletedImageGalleries.forEach { imageGallery in
+				let hashValue = imageGallery.hashValue
+				if let imageData = try? JSONEncoder().encode(imageGallery) {
+					defaults.setValue(imageData, forKey: String(hashValue))
+					imageGalleriesHashValues.append(hashValue)
 				}
 			}
-			defaults.setValue(imageGalleriesData, forKey: DefaultsKey.recentlyDeletedImageGalleriesData)
+			defaultsKey = DefaultsKey.recentlyDeletedImageGalleriesData
 		}
-		if !defaults.synchronize() {
-			print("failed to synchronize")
-		}
+		defaults.setValue(imageGalleriesHashValues, forKey: defaultsKey)
 	}
 
 	override func viewWillLayoutSubviews() {
