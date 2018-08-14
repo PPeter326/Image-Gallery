@@ -11,58 +11,22 @@ import UIKit
 class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDropDelegate, UICollectionViewDragDelegate {
     
     // MARK: - Model
-	var imageGallery: ImageGallery? {
-		didSet {
-			writeImageGalleryToDefault()
-		}
-	}
-	private let defaults = UserDefaults.standard
+	var imageGallery: ImageGallery?
 	
-	private func writeImageGalleryToDefault() {
-		guard let hashValue = imageGallery?.hashValue else { return }
-		if let imageData = try? JSONEncoder().encode(imageGallery) {
-			defaults.setValue(imageData, forKey: String(hashValue))
-		}
-	}
 	
     // MARK: - Navigation item configuration
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        // The navigation bar button provides the same functionality as swipe left to reveal master list of image galleries
-        navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
-        navigationItem.title = imageGallery?.galleryName
-        
-    }
     
-    var dragSession: UIDragSession?
     
-    @IBAction func springLoaded(_ sender: UIBarButtonItem) {
+    
+    @IBAction func save(_ sender: UIBarButtonItem) {
         
-        // look for the item from drag session
-        if let session = dragSession {
-            if (session.localContext as? UICollectionView) == imageGalleryCollectionView {
-				if !imageGalleryCollectionView.hasActiveDrag {
-					dragSession = nil
-				} else {
-					let dragItems = session.items
-					for item in dragItems {
-						guard let imageTask = item.localObject as? ImageTask else { return }
-						guard let index = imageGallery?.imageTasks.index(of: imageTask) else { return }
-						
-						imageGalleryCollectionView.performBatchUpdates({
-							imageGallery?.imageTasks.remove(at: index)
-							imageGalleryCollectionView.deleteItems(at: [IndexPath(item: index, section: 0)])
-						})
-					}
-					// cancel drag session
-					dragSession = nil
-				}
-            }
-        }
     }
 	
     // MARK: - COLLECTION VIEW
+    
+    var images: [(url: URL, aspectRatio: CGFloat)]?
+    
     // MARK: Outlet
     @IBOutlet weak var imageGalleryCollectionView: UICollectionView! {
         didSet {
@@ -75,7 +39,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
     
     // MARK: View
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return imageGallery?.imageTasks.count ?? 0
+        return images?.count ?? 0
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -83,8 +47,8 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageCell", for: indexPath)
         if let imageCell = cell as? ImageCollectionViewCell {
             imageCell.spinner.isHidden = false
-			guard let imageTask = imageGallery?.imageTasks[indexPath.item] else { return cell }
-			fetchImage(url: imageTask.url!) { (image) in
+			guard let image = images?[indexPath.item] else { return cell }
+			fetchImage(url: image.url) { (image) in
                 if let image = image {
                     imageCell.imageView.image = image
                 } else {
@@ -114,7 +78,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
     // MARK: Layout
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let cellWidth = view.frame.width.zoomedBy(zoomFactor)
-        let aspectRatio = imageGallery?.imageTasks[indexPath.item].aspectRatio ?? 1.0
+        let aspectRatio = images?[indexPath.item].aspectRatio ?? 1.0
         let cellHeight = cellWidth / aspectRatio
         return CGSize(width: cellWidth, height: cellHeight)
     }
@@ -140,8 +104,6 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
     func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
         // Provide local context to drag session, so that it'll be easy to distinguish in-app vs external drag
         session.localContext = collectionView
-        // save reference to drag session for drag and drop to trashcan barbuttonitem
-        dragSession = session
         return dragItems(at: indexPath)
     }
     
@@ -151,11 +113,11 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
     
     private func dragItems(at indexPath: IndexPath) -> [UIDragItem] {
         // The drag item is created from URL only, but it carries the whole imageTask in localObject which will allow rearranging items within the drag and drop view
-        if let imageTask = imageGallery?.imageTasks[indexPath.item] , let url = imageTask.url {
-            let urlProvider = url as NSURL
+        if let image = images?[indexPath.item] {
+            let urlProvider = image.url as NSURL
             let urlItemProvider = NSItemProvider(object: urlProvider)
             let dragItem = UIDragItem(itemProvider: urlItemProvider)
-            dragItem.localObject = imageTask
+            dragItem.localObject = image
             return [dragItem]
         } else {
             return []
@@ -171,7 +133,6 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
         } else {
             canHandle = session.canLoadObjects(ofClass: NSURL.self) && session.canLoadObjects(ofClass: UIImage.self)
         }
-		if imageGallery == nil { canHandle = false }
         return canHandle
     }
 	
@@ -188,17 +149,17 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
             
             if item.isLocal {
                 
-                guard let sourceIndexPath = item.sourceIndexPath,
-					let destinationIndexPath = coordinator.destinationIndexPath,
-					let imageTask = item.dragItem.localObject as? ImageTask,
-				let imageGallery = imageGallery else { return }
-                imageGalleryCollectionView.performBatchUpdates({
-                    imageGallery.imageTasks.remove(at: sourceIndexPath.item)
-                    imageGallery.imageTasks.insert(imageTask, at: destinationIndexPath.item)
-                    imageGalleryCollectionView.deleteItems(at: [sourceIndexPath])
-                    imageGalleryCollectionView.insertItems(at: [destinationIndexPath])
-                })
-                coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
+                if let sourceIndexPath = item.sourceIndexPath,
+                    let destinationIndexPath = coordinator.destinationIndexPath,
+                    let image = item.dragItem.localObject as? (URL, CGFloat) {
+                    imageGalleryCollectionView.performBatchUpdates({
+                        images?.remove(at: sourceIndexPath.item)
+                        images?.insert(image, at: destinationIndexPath.item)
+                        imageGalleryCollectionView.deleteItems(at: [sourceIndexPath])
+                        imageGalleryCollectionView.insertItems(at: [destinationIndexPath])
+                    })
+                    coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
+                }
                 
             } else {
                 
@@ -208,30 +169,35 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
                 // Use placeholder cell while waiting for image and url to load.  The image task handler will replace placeholder cell with final content when both image and url are loaded.
                 let placeHolder = UICollectionViewDropPlaceholder(insertionIndexPath: destinationIndexPath, reuseIdentifier: "DropPlaceholderCell")
                 let placeholderContext = coordinator.drop(item.dragItem, to: placeHolder)
-				let taskHandler = TaskHandler { imageTask in
+				let taskHandler = TaskHandler { (url, aspectRatio) in
+                    let image = (url, aspectRatio)
 					// weak reference to view controller because user may switch to a different document before image is loaded
 					placeholderContext.commitInsertion(dataSourceUpdates: { [weak self] indexPath in
-						self?.imageGallery?.imageTasks.insert(imageTask, at: indexPath.item)
+                        if var images = self?.images {
+                            images.insert((image), at: indexPath.item)
+                        } else {
+                            self?.images = [image]
+                        }
 					})
 				}
-                let imageTask = ImageTask()
+                var image: (url: URL?, aspectRatio: CGFloat?) = (nil, nil)
                 
                 // load URL and image asynchronously, then process handler
                 item.dragItem.itemProvider.loadObject(ofClass: NSURL.self) { (provider, error) in
                     // receive imageURL data, and update data source while remove placeholder in main thread
                     DispatchQueue.main.async {
                         if let imageURL = provider as? URL {
-                            imageTask.url = imageURL
-                            taskHandler.process(imageTask: imageTask)
+                            image.url = imageURL
+                            taskHandler.process(image: image)
                         }
                     }
                 }
                 item.dragItem.itemProvider.loadObject(ofClass: UIImage.self) { (provider, error) in
                     DispatchQueue.main.async {
-                        if let image = provider as? UIImage {
-                            let aspectRatio = AspectRatio.calcAspectRatio(size: image.size)
-                            imageTask.aspectRatio = aspectRatio
-                            taskHandler.process(imageTask: imageTask)
+                        if let loadedImage = provider as? UIImage {
+                            let aspectRatio = AspectRatio.calcAspectRatio(size: loadedImage.size)
+                            image.aspectRatio = aspectRatio
+                            taskHandler.process(image: image)
                         }
                     }
                 }
