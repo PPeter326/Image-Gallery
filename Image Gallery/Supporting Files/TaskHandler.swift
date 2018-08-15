@@ -11,15 +11,18 @@ import UIKit
 
 class TaskHandler {
 	
+    var url: URL?
+    var aspectRatio: CGFloat?
+    
 	private var handler: (URL, CGFloat) -> Void
 	
 	init(handler: @escaping (URL, CGFloat) -> Void) {
 		self.handler = handler
 	}
 	
-    func process(image: (url: URL?, aspectRatio: CGFloat?)) {
-		if image.url != nil && image.aspectRatio != nil {
-            handler(image.url!, image.aspectRatio!)
+    func process() {
+		if url != nil && aspectRatio != nil {
+            handler(url!, aspectRatio!)
 		}
 	}
 }

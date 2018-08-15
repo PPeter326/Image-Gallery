@@ -173,22 +173,20 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
                     let image = (url, aspectRatio)
 					// weak reference to view controller because user may switch to a different document before image is loaded
 					placeholderContext.commitInsertion(dataSourceUpdates: { [weak self] indexPath in
-                        if var images = self?.images {
-                            images.insert((image), at: indexPath.item)
+                        if self?.images != nil {
+                            self?.images?.insert((image), at: indexPath.item)
                         } else {
                             self?.images = [image]
                         }
 					})
 				}
-                var image: (url: URL?, aspectRatio: CGFloat?) = (nil, nil)
-                
                 // load URL and image asynchronously, then process handler
                 item.dragItem.itemProvider.loadObject(ofClass: NSURL.self) { (provider, error) in
                     // receive imageURL data, and update data source while remove placeholder in main thread
                     DispatchQueue.main.async {
                         if let imageURL = provider as? URL {
-                            image.url = imageURL
-                            taskHandler.process(image: image)
+                            taskHandler.url = imageURL
+                            taskHandler.process()
                         }
                     }
                 }
@@ -196,8 +194,8 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
                     DispatchQueue.main.async {
                         if let loadedImage = provider as? UIImage {
                             let aspectRatio = AspectRatio.calcAspectRatio(size: loadedImage.size)
-                            image.aspectRatio = aspectRatio
-                            taskHandler.process(image: image)
+                            taskHandler.aspectRatio = aspectRatio
+                            taskHandler.process()
                         }
                     }
                 }
