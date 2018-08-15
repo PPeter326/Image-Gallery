@@ -11,21 +11,60 @@ import UIKit
 class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UICollectionViewDropDelegate, UICollectionViewDragDelegate {
     
     // MARK: - Model
-	var imageGallery: ImageGallery?
+    var imageGallery: ImageGallery? {
+        get {
+            // retrieve data from the view, then instantiate imagegallery data
+            if let images = galleryImages?.map({ ImageGallery.ImageInfo(url: $0.url, aspectRatio: $0.aspectRatio) }) {
+                return ImageGallery(images: images)
+            } else {
+                return nil
+            }
+        }
+        set {
+            // reset view from new value
+            galleryImages = newValue?.images.map { ($0.url, $0.aspectRatio) }
+            imageGalleryCollectionView.reloadData()
+        }
+    }
 	
 	
     // MARK: - Navigation item configuration
     
     
     
-    
     @IBAction func save(_ sender: UIBarButtonItem) {
+        // save ImageGallery by using its json data property by using file manager, to a specific url and using name "Untitle.json"
+        if let json = imageGallery?.jsonData {
+            // get url to sandbox Document Directory through FileManager
+            if let url = try? FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("Untitled.json"){
+                do {
+                    try json.write(to: url)
+                    print("file saved successfully")
+                } catch {
+                    print("File did not save \(error)")
+                }
+            }
+        }
         
     }
 	
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // access file from url, then create json data, and instantiate ImageGallery from jsondata
+        if let url = try? FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("Untitled.json") {
+            do {
+                let jsonData = try Data(contentsOf: url)
+                self.imageGallery = ImageGallery(data: jsonData)
+            } catch {
+                print("Error opening file: \(error)")
+            }
+        }
+
+    }
+    
     // MARK: - COLLECTION VIEW
     
-    var images: [(url: URL, aspectRatio: CGFloat)]?
+    var galleryImages: [(url: URL, aspectRatio: CGFloat)]?
     
     // MARK: Outlet
     @IBOutlet weak var imageGalleryCollectionView: UICollectionView! {
@@ -39,7 +78,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
     
     // MARK: View
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return images?.count ?? 0
+        return galleryImages?.count ?? 0
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -47,7 +86,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageCell", for: indexPath)
         if let imageCell = cell as? ImageCollectionViewCell {
             imageCell.spinner.isHidden = false
-			guard let image = images?[indexPath.item] else { return cell }
+			guard let image = galleryImages?[indexPath.item] else { return cell }
 			fetchImage(url: image.url) { (image) in
                 if let image = image {
                     imageCell.imageView.image = image
@@ -78,7 +117,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
     // MARK: Layout
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let cellWidth = view.frame.width.zoomedBy(zoomFactor)
-        let aspectRatio = images?[indexPath.item].aspectRatio ?? 1.0
+        let aspectRatio = galleryImages?[indexPath.item].aspectRatio ?? 1.0
         let cellHeight = cellWidth / aspectRatio
         return CGSize(width: cellWidth, height: cellHeight)
     }
@@ -113,7 +152,7 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
     
     private func dragItems(at indexPath: IndexPath) -> [UIDragItem] {
         // The drag item is created from URL only, but it carries the whole imageTask in localObject which will allow rearranging items within the drag and drop view
-        if let image = images?[indexPath.item] {
+        if let image = galleryImages?[indexPath.item] {
             let urlProvider = image.url as NSURL
             let urlItemProvider = NSItemProvider(object: urlProvider)
             let dragItem = UIDragItem(itemProvider: urlItemProvider)
@@ -153,8 +192,8 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
                     let destinationIndexPath = coordinator.destinationIndexPath,
                     let image = item.dragItem.localObject as? (URL, CGFloat) {
                     imageGalleryCollectionView.performBatchUpdates({
-                        images?.remove(at: sourceIndexPath.item)
-                        images?.insert(image, at: destinationIndexPath.item)
+                        galleryImages?.remove(at: sourceIndexPath.item)
+                        galleryImages?.insert(image, at: destinationIndexPath.item)
                         imageGalleryCollectionView.deleteItems(at: [sourceIndexPath])
                         imageGalleryCollectionView.insertItems(at: [destinationIndexPath])
                     })
@@ -173,10 +212,10 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
                     let image = (url, aspectRatio)
 					// weak reference to view controller because user may switch to a different document before image is loaded
 					placeholderContext.commitInsertion(dataSourceUpdates: { [weak self] indexPath in
-                        if self?.images != nil {
-                            self?.images?.insert((image), at: indexPath.item)
+                        if self?.galleryImages != nil {
+                            self?.galleryImages?.insert((image), at: indexPath.item)
                         } else {
-                            self?.images = [image]
+                            self?.galleryImages = [image]
                         }
 					})
 				}
@@ -220,8 +259,8 @@ class ImageGalleryViewController: UIViewController, UICollectionViewDelegate, UI
 	override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
 		if segue.identifier == "ShowImage" {
 			if let imageVC = segue.destination as? ImageViewController {
-				if let imageCell = sender as? ImageCollectionViewCell, let indexPath = imageGalleryCollectionView.indexPath(for: imageCell), let imageTask = imageGallery?.imageTasks[indexPath.item] {
-					let imageURL = imageTask.url
+				if let imageCell = sender as? ImageCollectionViewCell, let indexPath = imageGalleryCollectionView.indexPath(for: imageCell), let imageInfo = imageGallery?.images[indexPath.item] {
+					let imageURL = imageInfo.url
 					imageVC.url = imageURL
 				}
 			}
